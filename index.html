@@ -26,7 +26,8 @@
     --muted:#8a8275;
     --danger:#b5543f;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  input, textarea{-webkit-user-select:text;user-select:text;}
   html{scroll-behavior:smooth;}
   @keyframes viewFadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
   #app > section:not(.hidden){ animation: viewFadeIn .22s cubic-bezier(.22,.61,.36,1); }
@@ -198,12 +199,8 @@
   .xcmp-label .crop-dot{margin-right:4px;}
   .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;}
   .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;}
-  .lr-col{flex:1;display:flex;flex-direction:row;min-width:0;}
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
-  .lr-caption-slot{flex:0 0 78px;}
-  .lr-caption-text{position:fixed;color:#eee;font-size:11px;line-height:1.4;text-align:center;z-index:2;padding:0 6px;box-sizing:border-box;display:none;}
-  .landscape-close{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.22);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -321,7 +318,7 @@
         <div class="settings-row" onclick="showAlert({title:'구글 동기화', message:'다음 버전에서 구글 드라이브/시트 동기화가 추가될 예정이에요.'})"><span>구글 동기화 (준비 중)</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v11 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v12 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1230,13 +1227,8 @@ function enableRotatorZoom(rotator){
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
-  function setCaptionsVisible(v){
-    ['lrCapA','lrCapB'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility = v?'visible':'hidden'; });
-  }
   function apply(){
     rotator.style.transform = `rotate(90deg) scale(${scale})`;
-    setCaptionsVisible(scale<=1.01);
-    if(scale<=1.01) placeLandscapeCaptions();
   }
   rotator.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){ startDist = dist(e.touches); startScale = scale; }
@@ -1266,50 +1258,19 @@ function openXCompareLandscape(){
   if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
   removeIfExists('landscapeOverlay');
   Promise.all([
-    idbGet('trials', xCmpA.trialId), idbGet('photos', xCmpA.photoId),
-    idbGet('trials', xCmpB.trialId), idbGet('photos', xCmpB.photoId)
-  ]).then(async ([tA,pA,tB,pB])=>{
-    const cA = await idbGet('crops', tA.cropId);
-    const cB = await idbGet('crops', tB.cropId);
-    const linesA = buildTrialLabelLines(cA, tA, pA).join('<br>');
-    const linesB = buildTrialLabelLines(cB, tB, pB).join('<br>');
+    idbGet('photos', xCmpA.photoId),
+    idbGet('photos', xCmpB.photoId)
+  ]).then(([pA,pB])=>{
     const overlay = document.createElement('div');
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
-      <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',20)}</div>
       <div class="landscape-rotator" id="landscapeRotator">
-        <div class="lr-col">
-          <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
-          <div class="lr-caption-slot" id="lrSlotA"></div>
-        </div>
-        <div class="lr-col">
-          <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
-          <div class="lr-caption-slot" id="lrSlotB"></div>
-        </div>
-      </div>
-      <div class="lr-caption-text" id="lrCapA">${linesA}</div>
-      <div class="lr-caption-text" id="lrCapB">${linesB}</div>`;
+        <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
+        <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
+      </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
     enableRotatorZoom(document.getElementById('landscapeRotator'));
-    placeLandscapeCaptions();
-  });
-}
-function placeLandscapeCaptions(){
-  requestAnimationFrame(()=>{
-    ['A','B'].forEach(w=>{
-      const slot = document.getElementById(`lrSlot${w}`);
-      const cap = document.getElementById(`lrCap${w}`);
-      if(!slot || !cap) return;
-      const r = slot.getBoundingClientRect();
-      cap.style.left = r.left+'px';
-      cap.style.top = r.top+'px';
-      cap.style.width = r.width+'px';
-      cap.style.height = r.height+'px';
-      cap.style.display = 'flex';
-      cap.style.alignItems = 'center';
-      cap.style.justifyContent = 'center';
-    });
   });
 }
 function openXComparePicker(which){
