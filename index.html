@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>CropLog</title>
 <link rel="manifest" href="manifest.json">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="theme-color" content="#f6f4ee">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -316,12 +317,33 @@
       </div>
       <button class="btn btn-ghost" style="margin-bottom:22px;" onclick="rawToast('피드백 테스트입니다')">테스트 알림 보내기</button>
 
+      <div class="section-title">구글 동기화</div>
+      <div class="toggle-row">
+        <div class="label">구글 동기화 사용</div>
+        <div class="switch" id="syncEnableSwitch" onclick="toggleSyncEnabled()"><div class="knob"></div></div>
+      </div>
+      <div id="syncPanel" class="hidden" style="margin-top:10px;margin-bottom:22px;">
+        <div id="syncSignedOutBox">
+          <button class="btn btn-dark" onclick="startGoogleSignIn()">구글 계정으로 로그인</button>
+        </div>
+        <div id="syncSignedInBox" class="hidden">
+          <div class="detail-dates" id="syncAccountInfo" style="margin-bottom:10px;"></div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="restoreFromDrive()">복원하기</button>
+            <button class="btn btn-primary" onclick="backupToDrive()">지금 백업하기</button>
+          </div>
+          <div style="text-align:center;margin-top:10px;">
+            <span class="link" onclick="signOutGoogle()">로그아웃</span>
+          </div>
+          <div id="syncStatusText" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+        </div>
+      </div>
+
       <div class="settings-group">
         <div class="settings-row" onclick="go('crops')"><span>품목 관리</span><span class="chev">›</span></div>
-        <div class="settings-row" onclick="showAlert({title:'구글 동기화', message:'다음 버전에서 구글 드라이브/시트 동기화가 추가될 예정이에요.'})"><span>구글 동기화 (준비 중)</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v13 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v14 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -663,7 +685,11 @@ async function go(view, arg, fromPopstate){
   document.getElementById('view-'+view).classList.remove('hidden');
   if(view==='home'){ await renderHome(); }
   if(view==='crops'){ await renderCrops(); }
-  if(view==='settings'){ document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback); }
+  if(view==='settings'){
+    document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
+    document.getElementById('syncEnableSwitch').classList.toggle('on', !!appSettings.syncEnabled);
+    document.getElementById('syncPanel').classList.toggle('hidden', !appSettings.syncEnabled);
+  }
   if(view==='newtrial'){ await renderNewTrialForm(); }
   if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
   if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
@@ -718,7 +744,7 @@ window.addEventListener('popstate', ()=>{
     history.pushState({navIndex:0}, '');
   }
 });
-let appSettings = {feedback:true};
+let appSettings = {feedback:true, syncEnabled:false};
 async function loadSettings(){
   const s = await idbGet('meta','settings');
   if(s && s.value) appSettings = Object.assign(appSettings, s.value);
@@ -1674,6 +1700,179 @@ async function shareReport(){
     } else {
       toast('이 브라우저는 여러 장 동시 공유가 지원되지 않아요. 이미지 저장 후 공유해주세요.');
     }
+  }
+}
+
+/* ================= 구글 동기화 ================= */
+const GOOGLE_CLIENT_ID = '101745594691-bri5ddan44ksiiq72ut2ckb0t501uk8e.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const BACKUP_FILENAME = 'croplog-backup.json';
+let gTokenClient = null;
+let gAccessToken = null;
+let gTokenExpiry = 0;
+
+async function toggleSyncEnabled(){
+  appSettings.syncEnabled = !appSettings.syncEnabled;
+  document.getElementById('syncEnableSwitch').classList.toggle('on', appSettings.syncEnabled);
+  document.getElementById('syncPanel').classList.toggle('hidden', !appSettings.syncEnabled);
+  await saveSettings();
+}
+
+function ensureTokenClient(){
+  if(gTokenClient) return true;
+  if(!window.google || !google.accounts || !google.accounts.oauth2) return false;
+  gTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: ()=>{}
+  });
+  return true;
+}
+function requestAccessToken(interactive){
+  return new Promise((resolve, reject)=>{
+    if(!ensureTokenClient()){ reject(new Error('구글 로그인 스크립트를 아직 불러오는 중이에요. 잠시 후 다시 시도해주세요.')); return; }
+    gTokenClient.callback = (resp)=>{
+      if(resp.error){ reject(new Error(resp.error)); return; }
+      gAccessToken = resp.access_token;
+      gTokenExpiry = Date.now() + (resp.expires_in*1000 - 60000);
+      resolve(gAccessToken);
+    };
+    gTokenClient.requestAccessToken({ prompt: interactive ? 'consent' : '' });
+  });
+}
+async function getValidToken(){
+  if(gAccessToken && Date.now() < gTokenExpiry) return gAccessToken;
+  return await requestAccessToken(!gAccessToken);
+}
+async function startGoogleSignIn(){
+  try{
+    await requestAccessToken(true);
+    document.getElementById('syncSignedOutBox').classList.add('hidden');
+    document.getElementById('syncSignedInBox').classList.remove('hidden');
+    try{
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+gAccessToken}});
+      const info = await res.json();
+      document.getElementById('syncAccountInfo').textContent = `${info.email || '구글 계정'}으로 로그인됨`;
+    }catch(e){
+      document.getElementById('syncAccountInfo').textContent = '로그인됨';
+    }
+    toast('구글 로그인 완료했어요');
+  }catch(e){
+    toast('로그인에 실패했어요');
+  }
+}
+function signOutGoogle(){
+  if(gAccessToken && window.google && google.accounts && google.accounts.oauth2){
+    google.accounts.oauth2.revoke(gAccessToken, ()=>{});
+  }
+  gAccessToken = null; gTokenExpiry = 0;
+  document.getElementById('syncSignedInBox').classList.add('hidden');
+  document.getElementById('syncSignedOutBox').classList.remove('hidden');
+  document.getElementById('syncStatusText').textContent = '';
+  toast('로그아웃했어요');
+}
+async function findBackupFileId(token){
+  const q = encodeURIComponent(`name='${BACKUP_FILENAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`, {
+    headers:{ Authorization:'Bearer '+token }
+  });
+  const data = await res.json();
+  if(data.files && data.files.length) return data.files[0].id;
+  return null;
+}
+function blobToBase64(blob){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onloadend = ()=> resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(base64, mime){
+  const byteChars = atob(base64);
+  const byteNumbers = new Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  return new Blob([new Uint8Array(byteNumbers)], {type: mime || 'image/jpeg'});
+}
+async function backupToDrive(){
+  const statusEl = document.getElementById('syncStatusText');
+  try{
+    statusEl.textContent = '백업 준비 중...';
+    const token = await getValidToken();
+    const [crops, trials, photos, notes, metaAll] = await Promise.all([
+      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta')
+    ]);
+    const photosOut = [];
+    for(let i=0;i<photos.length;i++){
+      const p = photos[i];
+      statusEl.textContent = `사진 변환 중 (${i+1}/${photos.length})`;
+      const b64 = await blobToBase64(p.blob);
+      photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
+    }
+    const backup = { version:1, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut };
+    const json = JSON.stringify(backup);
+
+    statusEl.textContent = '업로드 중...';
+    const existingId = await findBackupFileId(token);
+    const metadata = { name: BACKUP_FILENAME, mimeType:'application/json' };
+    const boundary = 'croplog_boundary_' + Date.now();
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${existingId ? '{}' : JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${json}\r\n` +
+      `--${boundary}--`;
+    const url = existingId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
+      : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+    const res = await fetch(url, {
+      method: existingId ? 'PATCH' : 'POST',
+      headers:{ Authorization:'Bearer '+token, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body
+    });
+    if(!res.ok) throw new Error('upload failed: '+res.status);
+    statusEl.textContent = `마지막 백업: ${new Date().toLocaleString('ko-KR')}`;
+    toast('백업 완료했어요');
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '';
+    toast('백업에 실패했어요. 다시 시도해주세요.');
+  }
+}
+async function restoreFromDrive(){
+  const ok = await showConfirm({
+    title:'복원하기',
+    message:'구글 드라이브에 저장된 백업으로 복원할까요?\n지금 이 기기에 있는 데이터는 백업 내용으로 덮어써져요.',
+    confirmLabel:'복원', danger:true
+  });
+  if(!ok) return;
+  const statusEl = document.getElementById('syncStatusText');
+  try{
+    statusEl.textContent = '백업 파일 확인 중...';
+    const token = await getValidToken();
+    const fileId = await findBackupFileId(token);
+    if(!fileId){ toast('드라이브에 백업 파일이 없어요'); statusEl.textContent=''; return; }
+    statusEl.textContent = '다운로드 중...';
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers:{ Authorization:'Bearer '+token }
+    });
+    const backup = await res.json();
+    statusEl.textContent = '복원 중...';
+    await idbClearAll();
+    for(const c of backup.crops||[]) await idbPut('crops', c);
+    for(const t of backup.trials||[]) await idbPut('trials', t);
+    for(const n of backup.notes||[]) await idbPut('notes', n);
+    for(const m of backup.meta||[]) await idbPut('meta', m);
+    for(const p of backup.photos||[]){
+      const blob = base64ToBlob(p.data, p.mime);
+      await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
+    }
+    await loadSettings();
+    statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
+    toast('복원 완료했어요');
+    go('home');
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '';
+    toast('복원에 실패했어요');
   }
 }
 
