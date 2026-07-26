@@ -191,6 +191,19 @@
   .cmp-tap:active{opacity:0.85;}
   .cmp-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:11px;background:var(--cream);line-height:1.4;}
   .compare-hint{text-align:center;font-size:10.5px;color:var(--muted);margin-top:8px;}
+  .xcmp-col{flex:1;display:flex;flex-direction:column;gap:8px;}
+  .xcmp-col .imgbox{flex:1;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--line);position:relative;}
+  .xcmp-col .imgbox img{width:100%;height:100%;object-fit:cover;}
+  .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
+  .xcmp-label .crop-dot{margin-right:4px;}
+  .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:10px;padding:14px;box-sizing:border-box;}
+  .landscape-rotator .lr-row{flex:1;display:flex;gap:10px;min-height:0;}
+  .landscape-rotator .lr-col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .landscape-rotator .lr-imgbox{flex:1;border-radius:10px;overflow:hidden;background:#2a241c;min-height:0;}
+  .landscape-rotator .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
+  .landscape-rotator .lr-label{color:#eee;font-size:11px;text-align:center;}
+  .landscape-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -460,20 +473,24 @@
   <section id="view-xcompare" class="hidden">
     <header class="topbar">
       <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg> 품종 비교</h1>
-      <span style="width:24px;"></span>
+      <button class="action" onclick="resetXCompare()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M20 14a8 8 0 1 1-2-8.6"/></svg></button>
     </header>
     <main>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:-4px 0 16px;">품목·품종에 상관없이 어떤 시교끼리도 자유롭게 골라 나란히 비교할 수 있어요.</p>
-      <div class="compare-wrap compare-wrap-big">
-        <div class="compare-imgs compare-imgs-big">
+      <div class="compare-wrap compare-wrap-big" style="display:flex;gap:10px;">
+        <div class="xcmp-col">
           <div class="imgbox cmp-tap" id="xCmpAImg" onclick="openXComparePicker('A')"></div>
-          <div class="imgbox cmp-tap" id="xCmpBImg" onclick="openXComparePicker('B')"></div>
+          <div id="xCmpLabelA" class="xcmp-label">탭해서<br>시교 선택</div>
         </div>
-        <div class="compare-labels" id="xCmpLabels" style="flex-direction:column;gap:4px;align-items:stretch;">
-          <div id="xCmpLabelA" style="text-align:center;">탭해서 시교 선택</div>
-          <div id="xCmpLabelB" style="text-align:center;">탭해서 시교 선택</div>
+        <div class="xcmp-col">
+          <div class="imgbox cmp-tap" id="xCmpBImg" onclick="openXComparePicker('B')"></div>
+          <div id="xCmpLabelB" class="xcmp-label">탭해서<br>시교 선택</div>
         </div>
       </div>
+      <button class="btn btn-ghost" onclick="openXCompareLandscape()">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        가로로 크게 보기
+      </button>
     </main>
   </section>
 
@@ -1150,14 +1167,47 @@ async function renderXCompareSide(which){
   const labelEl = document.getElementById(`xCmpLabel${which}`);
   if(!state){
     imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`;
-    labelEl.textContent = '탭해서 시교 선택';
+    labelEl.innerHTML = '탭해서<br>시교 선택';
     return;
   }
   const [t, p] = await Promise.all([idbGet('trials', state.trialId), idbGet('photos', state.photoId)]);
-  if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.textContent = '탭해서 시교 선택'; return; }
+  if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.innerHTML = '탭해서<br>시교 선택'; return; }
   const c = await idbGet('crops', t.cropId);
   imgEl.innerHTML = `<img src="${URL.createObjectURL(p.blob)}">`;
   labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${c.name} · ${t.seg}</b><br>${t.name} · ${p.date}`;
+}
+function resetXCompare(){
+  xCmpA = null; xCmpB = null;
+  renderXCompare();
+  toast('비교를 초기화했어요');
+}
+function openXCompareLandscape(){
+  if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
+  removeIfExists('landscapeOverlay');
+  Promise.all([
+    idbGet('trials', xCmpA.trialId), idbGet('photos', xCmpA.photoId),
+    idbGet('trials', xCmpB.trialId), idbGet('photos', xCmpB.photoId)
+  ]).then(async ([tA,pA,tB,pB])=>{
+    const cA = await idbGet('crops', tA.cropId);
+    const cB = await idbGet('crops', tB.cropId);
+    const overlay = document.createElement('div');
+    overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
+    overlay.innerHTML = `
+      <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',18)}</div>
+      <div class="landscape-rotator">
+        <div class="lr-row">
+          <div class="lr-col">
+            <div class="lr-imgbox"><img src="${URL.createObjectURL(pA.blob)}"></div>
+            <div class="lr-label">${cA.name} · ${tA.seg} · ${tA.name} · ${pA.date}</div>
+          </div>
+          <div class="lr-col">
+            <div class="lr-imgbox"><img src="${URL.createObjectURL(pB.blob)}"></div>
+            <div class="lr-label">${cB.name} · ${tB.seg} · ${tB.name} · ${pB.date}</div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+  });
 }
 function openXComparePicker(which){
   removeIfExists('xTrialPickModal');
