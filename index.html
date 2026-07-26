@@ -62,7 +62,15 @@
   header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  main{flex:1;padding:14px 16px 90px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+  .bottom-tabbar{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:480px;background:var(--paper);border-top:1px solid var(--line);
+    display:flex;z-index:15;padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .tabbar-item{flex:1;text-align:center;padding:9px 0 8px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:700;}
+  .tabbar-item svg{display:block;margin:0 auto 2px;}
+  .tabbar-item.active{color:var(--leaf-dark);}
   .hidden{display:none !important;}
 
   .search-box{
@@ -117,7 +125,7 @@
   .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 10px;line-height:1.6;}
 
   .fab{
-    position:fixed;bottom:24px;right:20px;
+    position:fixed;bottom:76px;right:20px;
     width:52px;height:52px;background:var(--leaf-dark);border-radius:50%;
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:300;
     box-shadow:0 4px 12px rgba(0,0,0,0.25);border:none;cursor:pointer;z-index:20;
@@ -191,6 +199,7 @@
   .photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
   .photo-thumb .chk{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;}
+  .photo-thumb.add-thumb{border:2px dashed var(--sprout);background:#f0f6f1;display:flex;align-items:center;justify-content:center;color:var(--leaf-dark);}
   .photo-thumb.selected .chk{background:var(--leaf);color:#fff;border-color:var(--leaf);}
   .photo-thumb.selected::after{content:'';position:absolute;inset:0;border:2px solid var(--leaf);border-radius:8px;pointer-events:none;}
 
@@ -235,6 +244,7 @@
   .settings-row:last-child{border-bottom:none;}
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
+  .detail-dates{font-size:11.5px;color:var(--muted);margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
 </style>
 </head>
 <body>
@@ -244,7 +254,7 @@
   <section id="view-home">
     <header class="topbar">
       <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> CropLog</h1>
-      <button class="action" onclick="go('settings')"><svg width="20" height="20" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg></button>
+      <span style="width:24px;"></span>
     </header>
     <main>
       <div class="search-box">
@@ -341,6 +351,14 @@
         <label>제품/시교명</label>
         <input type="text" id="ntName" placeholder="예: 더강한탄청양">
       </div>
+      <div class="field">
+        <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="date" id="ntSowDate">
+      </div>
+      <div class="field">
+        <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="date" id="ntTransplantDate">
+      </div>
       <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
     </main>
   </section>
@@ -357,6 +375,7 @@
       </div>
     </header>
     <main>
+      <div id="detailDates" class="detail-dates hidden"></div>
       <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> 성장 비교</div>
       <div class="compare-wrap compare-wrap-big">
         <div class="compare-imgs compare-imgs-big">
@@ -404,6 +423,9 @@
         <input type="date" id="uploadDate">
       </div>
       <button class="btn btn-dark" onclick="savePhotos()">저장</button>
+      <div style="text-align:center;margin-top:12px;">
+        <span class="link" style="font-size:12px;" onclick="cancelAction(()=>go('detail', currentTrialId), '사진 없이 넘어갔어요')">사진 없이 나중에 추가할게요</span>
+      </div>
     </main>
   </section>
 
@@ -434,7 +456,43 @@
     </main>
   </section>
 
+  <!-- ===== 품종 비교 (교차 비교) ===== -->
+  <section id="view-xcompare" class="hidden">
+    <header class="topbar">
+      <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg> 품종 비교</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:-4px 0 16px;">품목·품종에 상관없이 어떤 시교끼리도 자유롭게 골라 나란히 비교할 수 있어요.</p>
+      <div class="compare-wrap compare-wrap-big">
+        <div class="compare-imgs compare-imgs-big">
+          <div class="imgbox cmp-tap" id="xCmpAImg" onclick="openXComparePicker('A')"></div>
+          <div class="imgbox cmp-tap" id="xCmpBImg" onclick="openXComparePicker('B')"></div>
+        </div>
+        <div class="compare-labels" id="xCmpLabels" style="flex-direction:column;gap:4px;align-items:stretch;">
+          <div id="xCmpLabelA" style="text-align:center;">탭해서 시교 선택</div>
+          <div id="xCmpLabelB" style="text-align:center;">탭해서 시교 선택</div>
+        </div>
+      </div>
+    </main>
+  </section>
+
 </div>
+
+<nav class="bottom-tabbar" id="bottomTabbar">
+  <div class="tabbar-item" id="tabHome" onclick="go('home')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>
+    <div>홈</div>
+  </div>
+  <div class="tabbar-item" id="tabXCompare" onclick="go('xcompare')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>
+    <div>비교</div>
+  </div>
+  <div class="tabbar-item" id="tabSettings" onclick="go('settings')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg>
+    <div>설정</div>
+  </div>
+</nav>
 
 <div id="toast" class="toast"></div>
 
@@ -527,7 +585,9 @@ function icon(name, size){
     check:  `<svg ${c} ${s}><polyline points="4,12 9,17 20,6"/></svg>`,
     plus:   `<svg ${c} ${s}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
     chevLeft: `<svg ${c} ${s}><polyline points="15,4 7,12 15,20"/></svg>`,
-    chevRight: `<svg ${c} ${s}><polyline points="9,4 17,12 9,20"/></svg>`
+    chevRight: `<svg ${c} ${s}><polyline points="9,4 17,12 9,20"/></svg>`,
+    home: `<svg ${c} ${s}><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>`,
+    compare: `<svg ${c} ${s}><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><line x1="7" y1="9" x2="7" y2="9"/></svg>`
   };
   return icons[name] || '';
 }
@@ -563,7 +623,8 @@ function textColorFor(bgHex){
 
 /* ================= 라우팅 ================= */
 let currentTrialId = null;
-const views = ['home','settings','crops','newtrial','detail','upload','report'];
+const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare'];
+const topLevelViews = ['home','xcompare','settings'];
 let navStack = [];
 async function go(view, arg, fromPopstate){
   views.forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
@@ -575,6 +636,14 @@ async function go(view, arg, fromPopstate){
   if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
   if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
   if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
+  if(view==='xcompare'){ renderXCompare(); }
+
+  const tabbar = document.getElementById('bottomTabbar');
+  tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
+  document.getElementById('tabHome').classList.toggle('active', view==='home');
+  document.getElementById('tabXCompare').classList.toggle('active', view==='xcompare');
+  document.getElementById('tabSettings').classList.toggle('active', view==='settings');
+
   window.scrollTo(0,0);
 
   if(!fromPopstate){
@@ -710,8 +779,8 @@ async function renderSearch(){
   }
 }
 
-function cancelAction(fn){
-  toast('취소했어요');
+function cancelAction(fn, msg){
+  toast(msg || '취소했어요');
   fn();
 }
 
@@ -725,6 +794,14 @@ async function toggleFeedbackSetting(){
 /* ================= 공용 모달 (확인/알림) ================= */
 function removeIfExists(id){ document.querySelectorAll('#'+id).forEach(el=>el.remove()); }
 function closeModal(id){ removeIfExists(id); }
+function attachBackdropDismiss(backdrop, onDismiss){
+  backdrop.addEventListener('click', (e)=>{
+    if(e.target === backdrop){
+      backdrop.remove();
+      if(onDismiss) onDismiss();
+    }
+  });
+}
 
 function showConfirm({title, message, confirmLabel='확인', cancelLabel='취소', danger=false}){
   return new Promise(resolve=>{
@@ -743,6 +820,7 @@ function showConfirm({title, message, confirmLabel='확인', cancelLabel='취소
     document.body.appendChild(backdrop);
     document.getElementById('confirmCancelBtn').onclick = ()=>{ removeIfExists('confirmModal'); resolve(false); };
     document.getElementById('confirmOkBtn').onclick = ()=>{ if(appSettings.feedback) vibrate(danger?[15,60,15]:15); removeIfExists('confirmModal'); resolve(true); };
+    attachBackdropDismiss(backdrop, ()=>resolve(false));
   });
 }
 function showAlert({title, message, okLabel='확인'}){
@@ -758,6 +836,7 @@ function showAlert({title, message, okLabel='확인'}){
       </div>`;
     document.body.appendChild(backdrop);
     document.getElementById('alertOkBtn').onclick = ()=>{ removeIfExists('alertModal'); resolve(true); };
+    attachBackdropDismiss(backdrop, ()=>resolve(true));
   });
 }
 
@@ -794,6 +873,7 @@ function openCropEditModal(cropId){
         </div>
       </div>`;
     document.body.appendChild(backdrop);
+    attachBackdropDismiss(backdrop);
     const cat = document.getElementById('editColorCatalog');
     let sel = c.color;
     cat.innerHTML = COLOR_CATALOG.map(col=>`<div class="color-dot ${col===sel?'sel':''}" style="background:${col}" onclick="pickEditColor('${col}', this)"></div>`).join('');
@@ -828,6 +908,8 @@ async function renderNewTrialForm(){
   document.getElementById('customCropBox').classList.add('hidden');
   document.getElementById('ntSeg').value='';
   document.getElementById('ntName').value='';
+  document.getElementById('ntSowDate').value='';
+  document.getElementById('ntTransplantDate').value='';
   document.getElementById('customCropName').value='';
 
   const cat = document.getElementById('colorCatalog');
@@ -872,6 +954,8 @@ function selectCustomCrop(el){
 async function createTrial(){
   const seg = document.getElementById('ntSeg').value.trim();
   const name = document.getElementById('ntName').value.trim();
+  const sowDate = document.getElementById('ntSowDate').value;
+  const transplantDate = document.getElementById('ntTransplantDate').value;
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
 
   let cropId = selectedCropId;
@@ -885,7 +969,7 @@ async function createTrial(){
   if(!cropId){ toast('품목을 선택해주세요'); return; }
 
   const id = uid();
-  await idbPut('trials', {id, cropId, seg, name, createdAt: Date.now()});
+  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, createdAt: Date.now()});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -924,20 +1008,31 @@ async function openTrialEditModal(){
         <label>제품/시교명</label>
         <input type="text" id="editTrialName" value="${t.name}">
       </div>
+      <div class="field">
+        <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="date" id="editTrialSowDate" value="${t.sowDate||''}">
+      </div>
+      <div class="field">
+        <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="date" id="editTrialTransplantDate" value="${t.transplantDate||''}">
+      </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="cancelAction(()=>closeModal('trialEditModal'))">취소</button>
         <button class="btn btn-primary" onclick="saveTrialEdit()">저장</button>
       </div>
     </div>`;
   document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
 }
 async function saveTrialEdit(){
   const cropId = document.getElementById('editTrialCrop').value;
   const seg = document.getElementById('editTrialSeg').value.trim();
   const name = document.getElementById('editTrialName').value.trim();
+  const sowDate = document.getElementById('editTrialSowDate').value;
+  const transplantDate = document.getElementById('editTrialTransplantDate').value;
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate;
   await idbPut('trials', t);
   closeModal('trialEditModal');
   toast('수정했어요');
@@ -968,6 +1063,12 @@ async function renderDetail(trialId){
   if(!t){ go('home'); return; }
   const c = await idbGet('crops', t.cropId);
   document.getElementById('detailTitle').textContent = t.name;
+  const dateParts = [];
+  if(t.sowDate) dateParts.push(`파종일 ${t.sowDate}`);
+  if(t.transplantDate) dateParts.push(`정식일 ${t.transplantDate}`);
+  const detailDatesEl = document.getElementById('detailDates');
+  if(dateParts.length){ detailDatesEl.textContent = dateParts.join(' · '); detailDatesEl.classList.remove('hidden'); }
+  else { detailDatesEl.classList.add('hidden'); }
   const favMeta = (await idbGet('meta','favorites'))?.value || [];
   document.getElementById('favBtn').innerHTML = favMeta.includes(trialId) ? icon('starFilled',17) : icon('star',17);
 
@@ -1008,7 +1109,6 @@ function renderCompare(){
   document.getElementById('cmpLabels').innerHTML = `<span>${oldP? oldP.date:'-'}</span><span>${newP? newP.date:'-'}</span>`;
 }
 function openComparePicker(which){
-  if(allPhotosCache.length===0){ toast('먼저 사진을 등록해주세요'); return; }
   removeIfExists('comparePickModal');
   const grouped = {};
   allPhotosCache.forEach(p=>{ (grouped[p.date]=grouped[p.date]||[]).push(p); });
@@ -1018,7 +1118,10 @@ function openComparePicker(which){
   backdrop.innerHTML = `
     <div class="modal-sheet" style="max-height:75vh;">
       <h3>비교할 사진 선택</h3>
-      ${dateKeys.map(d=>`
+      <div class="photo-grid" style="margin-bottom:14px;">
+        <div class="photo-thumb add-thumb" onclick="closeModal('comparePickModal'); go('upload', currentTrialId)">${icon('plus',22)}</div>
+      </div>
+      ${dateKeys.length===0 ? '<p class="empty">등록된 사진이 없어요. 위에서 새로 추가해보세요.</p>' : dateKeys.map(d=>`
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
@@ -1027,11 +1130,107 @@ function openComparePicker(which){
         </div>`).join('')}
     </div>`;
   document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
 }
 function pickComparePhoto(which, photoId){
   if(which==='old') cmpOldPhotoId = photoId; else cmpNewPhotoId = photoId;
   removeIfExists('comparePickModal');
   renderCompare();
+}
+
+/* ================= 품종 비교 (교차 비교) ================= */
+let xCmpA = null, xCmpB = null; // {trialId, photoId}
+function renderXCompare(){
+  renderXCompareSide('A');
+  renderXCompareSide('B');
+}
+async function renderXCompareSide(which){
+  const state = which==='A' ? xCmpA : xCmpB;
+  const imgEl = document.getElementById(`xCmp${which}Img`);
+  const labelEl = document.getElementById(`xCmpLabel${which}`);
+  if(!state){
+    imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`;
+    labelEl.textContent = '탭해서 시교 선택';
+    return;
+  }
+  const [t, p] = await Promise.all([idbGet('trials', state.trialId), idbGet('photos', state.photoId)]);
+  if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.textContent = '탭해서 시교 선택'; return; }
+  const c = await idbGet('crops', t.cropId);
+  imgEl.innerHTML = `<img src="${URL.createObjectURL(p.blob)}">`;
+  labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${c.name} · ${t.seg}</b><br>${t.name} · ${p.date}`;
+}
+function openXComparePicker(which){
+  removeIfExists('xTrialPickModal');
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='xTrialPickModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet" style="max-height:75vh;">
+      <h3>비교할 시교 선택</h3>
+      <div class="search-box" style="margin-bottom:10px;">
+        ${icon('search',16)}
+        <input type="text" id="xTrialSearch" placeholder="품목, SEG, 시교명으로 검색" oninput="renderXTrialList('${which}')">
+      </div>
+      <div id="xTrialList"></div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+  renderXTrialList(which);
+}
+async function renderXTrialList(which){
+  const q = (document.getElementById('xTrialSearch')?.value || '').trim().toLowerCase();
+  const crops = await idbGetAll('crops');
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
+  const trials = await idbGetAll('trials');
+  const filtered = trials.filter(t=>{
+    if(!q) return true;
+    const c = cropMap[t.cropId];
+    return t.name.toLowerCase().includes(q) || t.seg.toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q));
+  }).sort((a,b)=>b.createdAt-a.createdAt);
+  const list = document.getElementById('xTrialList');
+  if(filtered.length===0){
+    list.innerHTML = '<p class="empty">일치하는 시교가 없어요.</p>';
+    return;
+  }
+  list.innerHTML = filtered.map(t=>{
+    const c = cropMap[t.cropId] || {name:'?',color:'#999'};
+    return `<div class="list-item" onclick="openXPhotoPicker('${which}','${t.id}')">
+      <div class="info">
+        <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.name}</div>
+        <div class="sub">${c.name} · ${t.seg}</div>
+      </div>
+      <div class="chev">${icon('chevRight',14)}</div>
+    </div>`;
+  }).join('');
+}
+async function openXPhotoPicker(which, trialId){
+  const photos = (await idbGetAll('photos')).filter(p=>p.trialId===trialId).sort((a,b)=>a.date.localeCompare(b.date));
+  const t = await idbGet('trials', trialId);
+  removeIfExists('xTrialPickModal');
+  removeIfExists('xPhotoPickModal');
+  const grouped = {};
+  photos.forEach(p=>{ (grouped[p.date]=grouped[p.date]||[]).push(p); });
+  const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='xPhotoPickModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet" style="max-height:75vh;">
+      <h3>${t.name} · 사진 선택</h3>
+      ${dateKeys.length===0 ? '<p class="empty">이 시교엔 아직 사진이 없어요.</p>' : dateKeys.map(d=>`
+        <div class="date-group">
+          <div class="date-head">${d}</div>
+          <div class="photo-grid">
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickXComparePhoto('${which}','${trialId}','${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+}
+function pickXComparePhoto(which, trialId, photoId){
+  const state = {trialId, photoId};
+  if(which==='A') xCmpA = state; else xCmpB = state;
+  removeIfExists('xPhotoPickModal');
+  renderXCompareSide(which);
 }
 /* ================= 메모 ================= */
 async function renderNotes(trialId){
@@ -1076,6 +1275,7 @@ function openNoteModal(noteId){
       </div>
     </div>`;
   document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
   if(noteId){
     idbGet('notes', noteId).then(n=>{
       if(n){ document.getElementById('noteDate').value = n.date; document.getElementById('noteText').value = n.text; }
