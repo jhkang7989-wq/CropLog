@@ -62,7 +62,7 @@
   header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
   .bottom-tabbar{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);
     width:100%;max-width:480px;background:var(--paper);border-top:1px solid var(--line);
@@ -235,7 +235,7 @@
   .report-row .cap{font-size:9.5px;color:var(--muted);text-align:center;margin-top:4px;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(30,25,18,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
-  .modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;}
+  .modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow-y:auto;}
   .modal-sheet h3{margin:0 0 14px;font-size:15px;color:var(--soil);}
 
   .lightbox{position:fixed;inset:0;background:#1e1a15;z-index:60;display:flex;flex-direction:column;}
@@ -321,7 +321,7 @@
         <div class="settings-row" onclick="showAlert({title:'구글 동기화', message:'다음 버전에서 구글 드라이브/시트 동기화가 추가될 예정이에요.'})"><span>구글 동기화 (준비 중)</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v4 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v11 · 로컬 저장 모드</div>
     </main>
   </section>
 
