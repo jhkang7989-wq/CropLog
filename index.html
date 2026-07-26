@@ -197,13 +197,13 @@
   .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
   .xcmp-label .crop-dot{margin-right:4px;}
   .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:10px;padding:14px;box-sizing:border-box;}
-  .landscape-rotator .lr-row{flex:1;display:flex;gap:10px;min-height:0;}
-  .landscape-rotator .lr-col{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
-  .landscape-rotator .lr-imgbox{flex:1;border-radius:10px;overflow:hidden;background:#2a241c;min-height:0;}
+  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:6px;}
+  .landscape-rotator .lr-imgbox{flex:1;background:#000;overflow:hidden;}
   .landscape-rotator .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
-  .landscape-rotator .lr-label{color:#eee;font-size:11px;text-align:center;}
-  .landscape-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+  .lr-caption{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;z-index:2;max-width:88%;text-align:center;line-height:1.4;}
+  .lr-caption-top{top:14px;}
+  .lr-caption-bottom{bottom:14px;}
+  .landscape-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -1194,19 +1194,14 @@ function openXCompareLandscape(){
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
       <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',18)}</div>
+      <div class="lr-caption lr-caption-top">${cA.name} · ${tA.seg} · ${tA.name} · ${pA.date}</div>
+      <div class="lr-caption lr-caption-bottom">${cB.name} · ${tB.seg} · ${tB.name} · ${pB.date}</div>
       <div class="landscape-rotator">
-        <div class="lr-row">
-          <div class="lr-col">
-            <div class="lr-imgbox"><img src="${URL.createObjectURL(pA.blob)}"></div>
-            <div class="lr-label">${cA.name} · ${tA.seg} · ${tA.name} · ${pA.date}</div>
-          </div>
-          <div class="lr-col">
-            <div class="lr-imgbox"><img src="${URL.createObjectURL(pB.blob)}"></div>
-            <div class="lr-label">${cB.name} · ${tB.seg} · ${tB.name} · ${pB.date}</div>
-          </div>
-        </div>
+        <div class="lr-imgbox"><img src="${URL.createObjectURL(pA.blob)}"></div>
+        <div class="lr-imgbox"><img src="${URL.createObjectURL(pB.blob)}"></div>
       </div>`;
     document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
   });
 }
 function openXComparePicker(which){
