@@ -156,6 +156,11 @@
   .compare-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
   .compare-select{display:flex;gap:8px;margin-bottom:6px;}
   .compare-select select{flex:1;font-size:11.5px;padding:7px;border-radius:7px;border:1px solid var(--line);background:var(--paper);}
+  .compare-wrap-big{padding:14px;margin-bottom:22px;}
+  .compare-wrap-big .compare-select select{font-size:13px;padding:9px;font-weight:700;}
+  .compare-imgs-big .imgbox{border-radius:12px;}
+  .compare-imgs-big{margin-bottom:10px;}
+  .compare-labels{font-size:12.5px;font-weight:700;color:var(--leaf-dark);}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -215,7 +220,7 @@
     <main>
       <div class="search-box">
         🔍
-        <input id="searchInput" type="text" placeholder="시교명, SEG로 검색" oninput="renderSearch()">
+        <input id="searchInput" type="text" placeholder="시교명, 규격으로 검색" oninput="renderSearch()">
       </div>
 
       <div id="favSection">
@@ -294,11 +299,11 @@
 
       <div class="field">
         <label>SEG</label>
-        <input type="text" id="ntSeg" placeholder="예: 청양1호">
+        <input type="text" id="ntSeg" placeholder="예: 신미계">
       </div>
       <div class="field">
         <label>제품/시교명</label>
-        <input type="text" id="ntName" placeholder="예: 1구역 시교">
+        <input type="text" id="ntName" placeholder="예: 더강한탄청양">
       </div>
       <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
     </main>
@@ -309,34 +314,34 @@
     <header class="topbar">
       <button class="back" onclick="go('home')">‹ 홈</button>
       <h1 id="detailTitle">시교</h1>
-      <button class="action" id="favBtn" onclick="toggleFav()">☆</button>
+      <div style="display:flex;gap:2px;">
+        <button class="action" id="favBtn" onclick="toggleFav()">☆</button>
+        <button class="action" onclick="deleteTrialConfirm()" style="font-size:16px;">🗑</button>
+      </div>
     </header>
     <main>
-      <div class="tab-row">
-        <div class="tab active" id="tabCompare" onclick="switchTab('compare')">성장 비교</div>
-        <div class="tab" id="tabAll" onclick="switchTab('all')">전체 사진</div>
-      </div>
-
-      <div id="panelCompare">
-        <div class="compare-wrap">
-          <div class="compare-select">
-            <select id="cmpOld" onchange="renderCompare()"></select>
-            <select id="cmpNew" onchange="renderCompare()"></select>
-          </div>
-          <div class="compare-imgs">
-            <div class="imgbox" id="cmpOldImg"></div>
-            <div class="imgbox" id="cmpNewImg"></div>
-          </div>
-          <div class="compare-labels" id="cmpLabels"><span>-</span><span>-</span></div>
+      <div class="section-title">🌱 성장 비교</div>
+      <div class="compare-wrap compare-wrap-big">
+        <div class="compare-select">
+          <select id="cmpOld" onchange="renderCompare()"></select>
+          <select id="cmpNew" onchange="renderCompare()"></select>
         </div>
-        <div class="section-title">촬영 타임라인</div>
-        <div class="photo-grid" id="timelineGrid" style="grid-template-columns:repeat(5,1fr);"></div>
+        <div class="compare-imgs compare-imgs-big">
+          <div class="imgbox" id="cmpOldImg"></div>
+          <div class="imgbox" id="cmpNewImg"></div>
+        </div>
+        <div class="compare-labels" id="cmpLabels"><span>-</span><span>-</span></div>
       </div>
 
-      <div id="panelAll" class="hidden"></div>
+      <div class="section-title">촬영 타임라인</div>
+      <div id="timelineAll"></div>
 
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="go('upload', currentTrialId)">📷 사진 추가</button>
-      <button class="btn btn-ghost" style="margin-top:8px;" onclick="go('report', currentTrialId)">📤 리포트 공유</button>
+      <button class="btn btn-primary" style="margin-top:6px;" onclick="go('upload', currentTrialId)">📷 사진 추가</button>
+
+      <div class="section-title" style="margin-top:22px;">📝 메모 <span class="link" onclick="openNoteModal()">+ 추가</span></div>
+      <div id="noteList"></div>
+
+      <button class="btn btn-ghost" style="margin-top:20px;" onclick="go('report', currentTrialId)">📤 리포트 공유</button>
     </main>
   </section>
 
@@ -348,10 +353,11 @@
       <span style="width:24px;"></span>
     </header>
     <main>
-      <div class="camera-box" onclick="document.getElementById('cameraInput').click()">
-        <span class="icon">📷</span>
-        탭하여 촬영 / 여러 장 선택
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-ghost" onclick="document.getElementById('galleryInput').click()">🖼️ 사진첩에서 선택</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('cameraInput').click()">📷 촬영하기</button>
       </div>
+      <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
       <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotoSelect(event)">
       <div class="preview-strip" id="previewStrip"></div>
 
@@ -362,10 +368,6 @@
       <div class="field">
         <label>촬영일자</label>
         <input type="date" id="uploadDate">
-      </div>
-      <div class="field">
-        <label>메모 (선택)</label>
-        <textarea id="uploadNote" placeholder="생육상태, 특이사항 등"></textarea>
       </div>
       <button class="btn btn-dark" onclick="savePhotos()">저장</button>
     </main>
@@ -395,7 +397,7 @@
 <script>
 /* ================= IndexedDB 레이어 ================= */
 let db;
-const DB_NAME = 'sigyoDB', DB_VER = 1;
+const DB_NAME = 'sigyoDB', DB_VER = 2;
 
 function openDB(){
   return new Promise((resolve, reject)=>{
@@ -406,6 +408,7 @@ function openDB(){
       if(!d.objectStoreNames.contains('trials')) d.createObjectStore('trials', {keyPath:'id'});
       if(!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', {keyPath:'id'});
       if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', {keyPath:'key'});
+      if(!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', {keyPath:'id'});
     };
     req.onsuccess = (e)=>{ db = e.target.result; resolve(db); };
     req.onerror = (e)=> reject(e);
@@ -426,12 +429,26 @@ function idbDelete(store, key){
 }
 function idbClearAll(){
   return new Promise((res)=>{
-    const t = db.transaction(['crops','trials','photos','meta'],'readwrite');
+    const t = db.transaction(['crops','trials','photos','meta','notes'],'readwrite');
     t.objectStore('crops').clear();
     t.objectStore('trials').clear();
     t.objectStore('photos').clear();
     t.objectStore('meta').clear();
+    t.objectStore('notes').clear();
     t.oncomplete = ()=>res(true);
+  });
+}
+function idbDeleteWhere(store, predicate){
+  return new Promise((res)=>{
+    const s = tx(store,'readwrite');
+    const req = s.openCursor();
+    req.onsuccess = (e)=>{
+      const cursor = e.target.result;
+      if(cursor){
+        if(predicate(cursor.value)) cursor.delete();
+        cursor.continue();
+      } else { res(true); }
+    };
   });
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
@@ -513,7 +530,7 @@ async function renderHome(){
         <div class="ribbon">★</div>
         <div class="crop-tag" style="color:${fg}">${c.name}</div>
         <div class="name">${t.name}</div>
-        <div class="seg">SEG · ${t.seg}</div>
+        <div class="seg">${t.seg}</div>
       </div>`;
     }).join('');
   }
@@ -530,7 +547,7 @@ async function renderHome(){
         <div class="bar" style="background:${c.color}"></div>
         <div class="info">
           <div class="name">${t.name}</div>
-          <div class="sub">${c.name} · SEG ${t.seg}</div>
+          <div class="sub">${c.name} · ${t.seg}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="when">${timeAgo(t.createdAt)}</span>
@@ -573,7 +590,7 @@ async function renderSearch(){
       return `<div class="list-item" onclick="go('detail','${t.id}')">
         <div class="info">
           <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.name}</div>
-          <div class="sub">${c.name} · SEG ${t.seg}</div>
+          <div class="sub">${c.name} · ${t.seg}</div>
         </div>
         <div class="chev">›</div>
       </div>`;
@@ -717,6 +734,18 @@ async function toggleFav(){
   await idbPut('meta', {key:'favorites', value:list});
   document.getElementById('favBtn').textContent = idx>=0 ? '☆':'★';
 }
+async function deleteTrialConfirm(){
+  const t = await idbGet('trials', currentTrialId);
+  if(!confirm(`"${t.name}" 시교를 삭제할까요?\n등록된 사진과 메모도 함께 삭제되고 되돌릴 수 없어요.`)) return;
+  await idbDeleteWhere('photos', p=>p.trialId===currentTrialId);
+  await idbDeleteWhere('notes', n=>n.trialId===currentTrialId);
+  await idbDelete('trials', currentTrialId);
+  const favMeta = (await idbGet('meta','favorites')) || {key:'favorites', value:[]};
+  favMeta.value = favMeta.value.filter(id=>id!==currentTrialId);
+  await idbPut('meta', favMeta);
+  toast('삭제했어요');
+  go('home');
+}
 let allPhotosCache = [];
 async function renderDetail(trialId){
   const t = await idbGet('trials', trialId);
@@ -736,18 +765,14 @@ async function renderDetail(trialId){
   if(dates.length){ cmpOld.value = dates[0]; cmpNew.value = dates[dates.length-1]; }
   renderCompare();
 
-  const tl = document.getElementById('timelineGrid');
-  const recentPhotos = [...photos].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
-  tl.innerHTML = recentPhotos.map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('') || '<p class="empty">아직 사진이 없어요</p>';
-
   const grouped = {};
   photos.forEach(p=>{ (grouped[p.date] = grouped[p.date]||[]).push(p); });
   const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
-  const panelAll = document.getElementById('panelAll');
+  const timelineAll = document.getElementById('timelineAll');
   if(dateKeys.length===0){
-    panelAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
+    timelineAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
   } else {
-    panelAll.innerHTML = dateKeys.map(d=>`
+    timelineAll.innerHTML = dateKeys.map(d=>`
       <div class="date-group">
         <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
@@ -755,12 +780,8 @@ async function renderDetail(trialId){
         </div>
       </div>`).join('');
   }
-}
-function switchTab(tab){
-  document.getElementById('tabCompare').classList.toggle('active', tab==='compare');
-  document.getElementById('tabAll').classList.toggle('active', tab==='all');
-  document.getElementById('panelCompare').classList.toggle('hidden', tab!=='compare');
-  document.getElementById('panelAll').classList.toggle('hidden', tab!=='all');
+
+  await renderNotes(trialId);
 }
 function renderCompare(){
   const oldD = document.getElementById('cmpOld').value, newD = document.getElementById('cmpNew').value;
@@ -770,6 +791,71 @@ function renderCompare(){
   document.getElementById('cmpNewImg').innerHTML = newP? `<img src="${URL.createObjectURL(newP.blob)}">`:'';
   document.getElementById('cmpLabels').innerHTML = `<span>${oldD||'-'}</span><span>${newD||'-'}</span>`;
 }
+/* ================= 메모 ================= */
+async function renderNotes(trialId){
+  const notes = (await idbGetAll('notes')).filter(n=>n.trialId===trialId).sort((a,b)=>b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+  const list = document.getElementById('noteList');
+  if(notes.length===0){
+    list.innerHTML = '<p class="empty">등록된 메모가 없어요. "+ 추가"로 남겨보세요.</p>';
+  } else {
+    list.innerHTML = notes.map(n=>`
+      <div class="list-item" style="align-items:flex-start;cursor:default;">
+        <div class="info" style="flex:1;">
+          <div class="sub" style="margin-bottom:3px;">${n.date}</div>
+          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;">${escapeHtml(n.text)}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex:0 0 auto;">
+          <button class="action" style="color:var(--muted);font-size:14px;" onclick="openNoteModal('${n.id}')">✏️</button>
+          <button class="action" style="color:var(--danger);font-size:14px;" onclick="deleteNote('${n.id}')">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+}
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function openNoteModal(noteId){
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='noteModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>${noteId? '메모 수정':'메모 추가'}</h3>
+      <div class="field">
+        <label>날짜</label>
+        <input type="date" id="noteDate" value="${todayStr()}">
+      </div>
+      <div class="field">
+        <label>내용</label>
+        <textarea id="noteText" placeholder="생육상태, 특이사항 등"></textarea>
+      </div>
+      <div class="btn-row">
+        ${noteId? '<button class="btn btn-ghost" onclick="closeModal(\'noteModal\')">취소</button>':''}
+        <button class="btn btn-primary" onclick="saveNote('${noteId||''}')">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  if(noteId){
+    idbGet('notes', noteId).then(n=>{
+      if(n){ document.getElementById('noteDate').value = n.date; document.getElementById('noteText').value = n.text; }
+    });
+  }
+}
+async function saveNote(noteId){
+  const date = document.getElementById('noteDate').value || todayStr();
+  const text = document.getElementById('noteText').value.trim();
+  if(!text){ toast('메모 내용을 입력해주세요'); return; }
+  const id = noteId || uid();
+  await idbPut('notes', {id, trialId: currentTrialId, date, text, createdAt: Date.now()});
+  closeModal('noteModal');
+  toast('메모를 저장했어요');
+  renderNotes(currentTrialId);
+}
+async function deleteNote(noteId){
+  if(!confirm('이 메모를 삭제할까요?')) return;
+  await idbDelete('notes', noteId);
+  toast('삭제했어요');
+  renderNotes(currentTrialId);
+}
+
 function openLightbox(photoId){
   idbGet('photos', photoId).then(p=>{
     if(!p) return;
@@ -807,10 +893,9 @@ async function renderUpload(trialId){
   pendingFiles = [];
   document.getElementById('previewStrip').innerHTML='';
   document.getElementById('uploadDate').value = todayStr();
-  document.getElementById('uploadNote').value='';
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
-  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / SEG ${t.seg} / ${t.name}`;
+  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${t.name}`;
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
@@ -827,9 +912,8 @@ function removePending(i){ pendingFiles.splice(i,1); renderPreview(); }
 async function savePhotos(){
   if(pendingFiles.length===0){ toast('사진을 먼저 선택해주세요'); return; }
   const date = document.getElementById('uploadDate').value || todayStr();
-  const note = document.getElementById('uploadNote').value.trim();
   for(const f of pendingFiles){
-    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob:f, note, createdAt:Date.now()});
+    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob:f, createdAt:Date.now()});
   }
   toast(`사진 ${pendingFiles.length}장 저장됐어요`);
   go('detail', currentTrialId);
@@ -848,7 +932,7 @@ async function renderReport(trialId){
   });
   document.getElementById('reportCard').innerHTML = `
     <div class="report-head">${t.name} 생육 리포트</div>
-    <div class="report-sub">${c.name} · SEG ${t.seg} · ${pickDates[0]||'-'}~${pickDates[pickDates.length-1]||'-'}</div>
+    <div class="report-sub">${c.name} · ${t.seg} · ${pickDates[0]||'-'}~${pickDates[pickDates.length-1]||'-'}</div>
     <div class="report-row">
       ${cells.map(cell=>`<div class="cell">${cell.url?`<img src="${cell.url}">`:'<div style="aspect-ratio:1;background:#eee;border-radius:7px;"></div>'}<div class="cap">${cell.date}</div></div>`).join('')}
     </div>`;
@@ -864,7 +948,7 @@ async function buildReportCanvas(){
   ctx.fillStyle='#3c3226'; ctx.font='bold 28px sans-serif';
   ctx.fillText(`${t.name} 생육 리포트`, 20, 38);
   ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
-  ctx.fillText(`${c.name} · SEG ${t.seg}`, 20, 66);
+  ctx.fillText(`${c.name} · ${t.seg}`, 20, 66);
 
   for(let i=0;i<cells.length;i++){
     const cell = cells[i];
