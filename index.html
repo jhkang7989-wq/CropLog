@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>시교 관리</title>
+<title>CropLog</title>
 <style>
   :root{
     --soil:#3c3226;
@@ -33,7 +33,7 @@
     display:flex;align-items:center;justify-content:space-between;
     position:sticky;top:0;z-index:10;
   }
-  header.topbar h1{font-size:16px;margin:0;font-weight:700;}
+  header.topbar h1{font-size:17px;margin:0;font-weight:800;letter-spacing:0.3px;}
   header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
   header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;}
   main{flex:1;padding:14px 16px 90px;overflow-y:auto;}
@@ -42,19 +42,41 @@
   .search-box{
     display:flex;align-items:center;gap:8px;
     background:var(--paper);border:1px solid var(--line);border-radius:22px;
-    padding:10px 16px;margin-bottom:16px;
+    padding:10px 16px;margin-bottom:18px;
   }
   .search-box input{border:none;outline:none;background:transparent;font-size:14px;flex:1;color:var(--ink);}
   .search-box input::placeholder{color:var(--muted);}
 
-  .section-title{font-size:13px;font-weight:700;color:var(--soil);margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .section-title{font-size:13px;font-weight:800;color:var(--soil);margin:20px 0 10px;display:flex;align-items:center;gap:6px;justify-content:space-between;}
   .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;}
 
-  .pin-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
-  .pin-card{flex:0 0 auto;width:96px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;cursor:pointer;}
-  .pin-thumb{height:52px;border-radius:8px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
-  .pin-name{font-size:11px;font-weight:700;line-height:1.3;}
-  .pin-sub{font-size:9.5px;color:var(--muted);margin-top:2px;}
+  /* ---- 즐겨찾기: 세련된 핀 카드 (컬러 그라데이션 + 리본) ---- */
+  .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
+  .pin-card{
+    flex:0 0 auto;width:130px;border-radius:16px;padding:14px 12px;cursor:pointer;
+    position:relative;overflow:hidden;color:#fff;
+    box-shadow:0 6px 16px rgba(60,50,38,0.18);
+  }
+  .pin-card .ribbon{
+    position:absolute;top:8px;right:8px;font-size:11px;background:rgba(255,255,255,0.25);
+    width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .pin-card .crop-tag{font-size:9.5px;opacity:0.85;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:20px;}
+  .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;}
+  .pin-card .seg{font-size:10px;opacity:0.85;}
+
+  /* ---- 최근 등록: 클린 리스트 ---- */
+  .recent-item{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
+    cursor:pointer;position:relative;overflow:hidden;
+  }
+  .recent-item .bar{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .recent-item .info{padding-left:8px;}
+  .recent-item .info .name{font-size:13.5px;font-weight:700;}
+  .recent-item .info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .recent-item .when{font-size:10px;color:var(--muted);background:var(--cream);padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .recent-item .chev{color:var(--muted);margin-left:6px;}
 
   .list-item{
     background:var(--paper);border:1px solid var(--line);border-radius:12px;
@@ -64,17 +86,17 @@
   .list-item .info .name{font-size:13.5px;font-weight:700;}
   .list-item .info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
   .list-item .chev{color:var(--muted);}
-  .crop-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .crop-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid rgba(0,0,0,0.08);}
 
   .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 10px;line-height:1.6;}
 
   .fab{
-    position:fixed;bottom:24px;left:50%;transform:translateX(calc(-50% + 176px));
+    position:fixed;bottom:24px;right:20px;
     width:52px;height:52px;background:var(--leaf-dark);border-radius:50%;
     display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:300;
     box-shadow:0 4px 12px rgba(0,0,0,0.25);border:none;cursor:pointer;z-index:20;
   }
-  @media (max-width:480px){ .fab{transform:none;right:20px;left:auto;} }
+  #app{position:relative;}
 
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:700;}
@@ -85,13 +107,24 @@
   .field textarea{resize:vertical;min-height:60px;}
   .autofill-tag{display:inline-block;font-size:9px;background:#eaf3ec;color:var(--leaf-dark);padding:2px 7px;border-radius:20px;margin-left:6px;}
 
-  .color-grid{display:flex;flex-wrap:wrap;gap:8px;}
-  .color-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;}
+  /* ---- 품목 선택 타일 ---- */
+  .crop-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+  .crop-tile{text-align:center;cursor:pointer;padding:6px 2px;border-radius:12px;border:2px solid transparent;}
+  .crop-tile.sel{border-color:var(--leaf-dark);background:rgba(74,124,89,0.08);}
+  .crop-tile .swatch{width:40px;height:40px;border-radius:50%;margin:0 auto 6px;border:2px solid rgba(0,0,0,0.08);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;}
+  .crop-tile .label{font-size:10.5px;font-weight:700;}
+  .crop-tile.add .swatch{background:var(--paper);border:2px dashed var(--sprout);color:var(--leaf);font-size:18px;}
+
+  .custom-crop-box{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;}
+  .color-catalog{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .color-dot{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);}
   .color-dot.sel{border-color:var(--soil);}
+  .color-custom-input{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);}
+  .color-custom-input input[type=color]{width:34px;height:34px;border:none;border-radius:8px;padding:0;cursor:pointer;background:none;}
 
   .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:14px;}
   .toggle-row .label{font-size:12.5px;}
-  .switch{position:relative;width:40px;height:22px;background:var(--line);border-radius:20px;cursor:pointer;transition:background .2s;}
+  .switch{position:relative;width:40px;height:22px;background:var(--line);border-radius:20px;cursor:pointer;transition:background .2s;flex:0 0 auto;}
   .switch.on{background:var(--leaf);}
   .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
   .switch.on .knob{transform:translateX(18px);}
@@ -100,6 +133,7 @@
   .btn-primary{background:var(--leaf);color:#fff;}
   .btn-dark{background:var(--leaf-dark);color:#fff;}
   .btn-ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink);}
+  .btn-danger{background:#fbeceA;color:var(--danger);}
   .btn-row{display:flex;gap:8px;}
   .btn-row .btn{flex:1;}
 
@@ -153,6 +187,12 @@
 
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--soil);color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
+
+  .settings-group{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .settings-row{padding:13px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row .chev{color:var(--muted);}
+  .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
 </style>
 </head>
 <body>
@@ -161,13 +201,13 @@
   <!-- ===== HOME ===== -->
   <section id="view-home">
     <header class="topbar">
-      <h1>🌱 시교 관리</h1>
-      <button class="action" onclick="go('crops')">☰</button>
+      <h1>🌱 CropLog</h1>
+      <button class="action" onclick="go('settings')">⚙️</button>
     </header>
     <main>
       <div class="search-box">
         🔍
-        <input id="searchInput" type="text" placeholder="시교명, 품종으로 검색" oninput="renderSearch()">
+        <input id="searchInput" type="text" placeholder="시교명, SEG로 검색" oninput="renderSearch()">
       </div>
 
       <div id="favSection">
@@ -181,23 +221,40 @@
       </div>
 
       <div id="recentSection">
-        <div class="section-title">최근 등록</div>
+        <div class="section-title">🕓 최근 등록</div>
         <div id="recentList"></div>
       </div>
     </main>
     <button class="fab" onclick="go('newtrial')">+</button>
   </section>
 
+  <!-- ===== 설정 ===== -->
+  <section id="view-settings" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1>설정</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="settings-group">
+        <div class="settings-row" onclick="go('crops')"><span>품목 관리</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="alert('다음 버전에서 구글 드라이브/시트 동기화가 추가될 예정이에요.')"><span>구글 동기화 (준비 중)</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
+      </div>
+      <div class="app-version">CropLog v2 · 로컬 저장 모드</div>
+    </main>
+  </section>
+
   <!-- ===== 품목 관리 ===== -->
   <section id="view-crops" class="hidden">
     <header class="topbar">
-      <button class="back" onclick="go('home')">‹ 홈</button>
+      <button class="back" onclick="go('settings')">‹ 설정</button>
       <h1>품목 관리</h1>
-      <button class="action" onclick="openCropModal()">+</button>
+      <span style="width:24px;"></span>
     </header>
     <main>
       <div id="cropList"></div>
-      <p class="empty" id="cropEmpty">등록된 품목이 없어요. 우측 상단 + 로 추가해보세요.</p>
+      <p class="empty" id="cropEmpty">등록된 품목이 없어요. 새 시교 등록 시 자동으로 추가돼요.</p>
     </main>
   </section>
 
@@ -210,23 +267,32 @@
     </header>
     <main>
       <div class="field">
-        <label>품목</label>
-        <select id="ntCrop" onchange="onCropChange()"></select>
+        <label>품목 선택</label>
+        <div class="crop-tiles" id="cropTiles"></div>
+      </div>
+
+      <div class="custom-crop-box hidden" id="customCropBox">
+        <div class="field" style="margin-bottom:10px;">
+          <label>품목명</label>
+          <input type="text" id="customCropName" placeholder="예: 딸기">
+        </div>
+        <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;">카드 색상</label>
+        <div class="color-catalog" id="colorCatalog"></div>
+        <div class="color-custom-input">
+          <input type="color" id="customColorPicker" value="#4a7c59">
+          <span>원하는 색이 없다면 직접 선택</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>SEG</label>
+        <input type="text" id="ntSeg" placeholder="예: 청양1호">
       </div>
       <div class="field">
-        <label>품종명</label>
-        <input type="text" id="ntVariety" placeholder="예: 청양고추">
-      </div>
-      <div class="field" id="ntProductField">
-        <label>제품명</label>
-        <input type="text" id="ntProduct" placeholder="예: A사 청양1호">
-      </div>
-      <div class="field">
-        <label>시교명</label>
-        <input type="text" id="ntTrialName" placeholder="예: 1구역 시교">
+        <label>제품/시교명</label>
+        <input type="text" id="ntName" placeholder="예: 1구역 시교">
       </div>
       <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
-      <p class="empty" id="ntNoCrop" style="display:none;">먼저 품목을 등록해주세요.</p>
     </main>
   </section>
 
@@ -350,12 +416,58 @@ function idbPut(store, val){
 function idbDelete(store, key){
   return new Promise((res)=>{ const r = tx(store,'readwrite').delete(key); r.onsuccess=()=>res(true); });
 }
+function idbClearAll(){
+  return new Promise((res)=>{
+    const t = db.transaction(['crops','trials','photos','meta'],'readwrite');
+    t.objectStore('crops').clear();
+    t.objectStore('trials').clear();
+    t.objectStore('photos').clear();
+    t.objectStore('meta').clear();
+    t.oncomplete = ()=>res(true);
+  });
+}
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
+function timeAgo(ts){
+  const diffMs = Date.now()-ts;
+  const day = Math.floor(diffMs/86400000);
+  if(day<=0) return '오늘';
+  if(day===1) return '어제';
+  return `${day}일 전`;
+}
+
+/* ================= 프리셋 품목 ================= */
+const PRESET_CROPS = [
+  {name:'고추', color:'#c0453b'},
+  {name:'무',   color:'#ffffff'},
+  {name:'배추', color:'#4a7c59'},
+  {name:'토마토', color:'#e0729a'},
+  {name:'수박', color:'#232323'},
+  {name:'오이', color:'#7a548f'},
+  {name:'멜론', color:'#e8c547'},
+];
+const COLOR_CATALOG = ['#c0453b','#e0729a','#d99a3c','#e8c547','#4a7c59','#8fb996','#3c6e8f','#5da8c9','#7a548f','#b384c9','#5f6b3f','#b5754f','#232323','#8a8275','#ffffff','#365c42'];
+
+async function ensurePresetCrops(){
+  const existing = await idbGetAll('crops');
+  const names = new Set(existing.map(c=>c.name));
+  for(const p of PRESET_CROPS){
+    if(!names.has(p.name)){
+      await idbPut('crops', {id:'preset-'+p.name, name:p.name, color:p.color});
+    }
+  }
+}
+function textColorFor(bgHex){
+  // 밝은 배경(흰색, 노란색 등)엔 어두운 글씨, 아니면 흰 글씨
+  const c = bgHex.replace('#','');
+  const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  const brightness = (r*299+g*587+b*114)/1000;
+  return brightness > 175 ? '#2c2620' : '#ffffff';
+}
 
 /* ================= 라우팅 ================= */
 let currentTrialId = null;
-const views = ['home','crops','newtrial','detail','upload','report'];
+const views = ['home','settings','crops','newtrial','detail','upload','report'];
 async function go(view, arg){
   views.forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
   document.getElementById('view-'+view).classList.remove('hidden');
@@ -380,7 +492,7 @@ async function renderHome(){
   const trials = await idbGetAll('trials');
   const favIds = (await idbGet('meta','favorites'))?.value || [];
 
-  // 즐겨찾기
+  // 즐겨찾기 - 세련된 컬러 카드
   const favRow = document.getElementById('favRow');
   const favTrials = trials.filter(t=>favIds.includes(t.id));
   if(favTrials.length===0){
@@ -388,15 +500,17 @@ async function renderHome(){
   } else {
     favRow.innerHTML = favTrials.map(t=>{
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
-      return `<div class="pin-card" onclick="go('detail','${t.id}')">
-        <div class="pin-thumb" style="background:${c.color}">${c.name}</div>
-        <div class="pin-name">★ ${t.trialName}</div>
-        <div class="pin-sub">${t.variety}</div>
+      const fg = textColorFor(c.color);
+      return `<div class="pin-card" style="background:${c.color};color:${fg}" onclick="go('detail','${t.id}')">
+        <div class="ribbon">★</div>
+        <div class="crop-tag" style="color:${fg}">${c.name}</div>
+        <div class="name">${t.name}</div>
+        <div class="seg">SEG · ${t.seg}</div>
       </div>`;
     }).join('');
   }
 
-  // 최근 등록
+  // 최근 등록 - 클린 리스트 + 컬러 바
   const recentList = document.getElementById('recentList');
   const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
   if(sorted.length===0){
@@ -404,12 +518,16 @@ async function renderHome(){
   } else {
     recentList.innerHTML = sorted.map(t=>{
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
-      return `<div class="list-item" onclick="go('detail','${t.id}')">
+      return `<div class="recent-item" onclick="go('detail','${t.id}')">
+        <div class="bar" style="background:${c.color}"></div>
         <div class="info">
-          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.trialName}</div>
-          <div class="sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''}</div>
+          <div class="name">${t.name}</div>
+          <div class="sub">${c.name} · SEG ${t.seg}</div>
         </div>
-        <div class="chev">›</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="when">${timeAgo(t.createdAt)}</span>
+          <span class="chev">›</span>
+        </div>
       </div>`;
     }).join('');
   }
@@ -436,8 +554,7 @@ async function renderSearch(){
   const trials = await idbGetAll('trials');
   const matched = trials.filter(t=>{
     const c = cropMap[t.cropId];
-    return t.trialName.toLowerCase().includes(q) || t.variety.toLowerCase().includes(q)
-      || (t.product||'').toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q));
+    return t.name.toLowerCase().includes(q) || t.seg.toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q));
   });
   const list = document.getElementById('searchList');
   if(matched.length===0){
@@ -447,8 +564,8 @@ async function renderSearch(){
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
       return `<div class="list-item" onclick="go('detail','${t.id}')">
         <div class="info">
-          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.trialName}</div>
-          <div class="sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''}</div>
+          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.name}</div>
+          <div class="sub">${c.name} · SEG ${t.seg}</div>
         </div>
         <div class="chev">›</div>
       </div>`;
@@ -457,7 +574,6 @@ async function renderSearch(){
 }
 
 /* ================= 품목 관리 ================= */
-const PRESET_COLORS = ['#c0453b','#d99a3c','#4a7c59','#3c6e8f','#7a548f','#b5754f','#5f6b3f','#8a8275'];
 let editingCropId = null;
 
 async function renderCrops(){
@@ -465,106 +581,121 @@ async function renderCrops(){
   const list = document.getElementById('cropList');
   document.getElementById('cropEmpty').style.display = crops.length? 'none':'block';
   list.innerHTML = crops.map(c=>`
-    <div class="list-item" onclick="openCropModal('${c.id}')">
+    <div class="list-item" onclick="openCropEditModal('${c.id}')">
       <div class="info">
         <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${c.name}</div>
-        <div class="sub">제품명 단계: ${c.useProduct? '사용':'생략'}</div>
       </div>
       <div class="chev">›</div>
     </div>`).join('');
 }
-
-function openCropModal(cropId){
-  editingCropId = cropId || null;
-  const backdrop = document.createElement('div');
-  backdrop.className='modal-backdrop';
-  backdrop.id='cropModal';
-  backdrop.innerHTML = `
-    <div class="modal-sheet">
-      <h3>${cropId? '품목 수정':'새 품목 등록'}</h3>
-      <div class="field">
-        <label>품목명</label>
-        <input type="text" id="cropNameInput" placeholder="예: 고추">
-      </div>
-      <div class="field">
-        <label>카드 색상</label>
-        <div class="color-grid" id="colorGrid"></div>
-      </div>
-      <div class="toggle-row">
-        <div class="label">제품명 단계 사용</div>
-        <div class="switch" id="useProductSwitch" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
-      </div>
-      <div class="btn-row">
-        ${cropId? '<button class="btn btn-ghost" onclick="deleteCrop()">삭제</button>':''}
-        <button class="btn btn-primary" onclick="saveCrop()">저장</button>
-      </div>
-    </div>`;
-  document.body.appendChild(backdrop);
-
-  const grid = document.getElementById('colorGrid');
-  let selColor = PRESET_COLORS[0];
-  grid.innerHTML = PRESET_COLORS.map(col=>`<div class="color-dot" style="background:${col}" data-c="${col}" onclick="selectColor('${col}')"></div>`).join('');
-
-  (async ()=>{
-    if(cropId){
-      const c = await idbGet('crops', cropId);
-      document.getElementById('cropNameInput').value = c.name;
-      selColor = c.color;
-      if(c.useProduct) document.getElementById('useProductSwitch').classList.add('on');
-    }
-    document.querySelectorAll('.color-dot').forEach(d=> d.classList.toggle('sel', d.dataset.c===selColor));
-  })();
-  window._selColor = ()=>selColor;
-  window.selectColor = (col)=>{ selColor = col; document.querySelectorAll('.color-dot').forEach(d=> d.classList.toggle('sel', d.dataset.c===col)); window._selColor=()=>col; };
+function openCropEditModal(cropId){
+  idbGet('crops', cropId).then(c=>{
+    editingCropId = cropId;
+    const backdrop = document.createElement('div');
+    backdrop.className='modal-backdrop'; backdrop.id='cropEditModal';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h3>품목 수정</h3>
+        <div class="field"><label>품목명</label><input type="text" id="editCropName" value="${c.name}"></div>
+        <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;">카드 색상</label>
+        <div class="color-catalog" id="editColorCatalog"></div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-danger" onclick="deleteCropConfirm()">삭제</button>
+          <button class="btn btn-primary" onclick="saveEditedCrop()">저장</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const cat = document.getElementById('editColorCatalog');
+    let sel = c.color;
+    cat.innerHTML = COLOR_CATALOG.map(col=>`<div class="color-dot ${col===sel?'sel':''}" style="background:${col}" onclick="pickEditColor('${col}', this)"></div>`).join('');
+    window._editColor = ()=>sel;
+    window.pickEditColor = (col, el)=>{ sel=col; document.querySelectorAll('#editColorCatalog .color-dot').forEach(d=>d.classList.remove('sel')); el.classList.add('sel'); window._editColor=()=>col; };
+  });
 }
-function closeModal(id){ const el=document.getElementById(id); if(el) el.remove(); }
-async function saveCrop(){
-  const name = document.getElementById('cropNameInput').value.trim();
+async function saveEditedCrop(){
+  const name = document.getElementById('editCropName').value.trim();
   if(!name){ toast('품목명을 입력해주세요'); return; }
-  const color = window._selColor ? window._selColor() : PRESET_COLORS[0];
-  const useProduct = document.getElementById('useProductSwitch').classList.contains('on');
-  const id = editingCropId || uid();
-  await idbPut('crops', {id, name, color, useProduct});
-  closeModal('cropModal');
-  toast('저장했어요');
-  renderCrops();
+  const color = window._editColor ? window._editColor() : '#4a7c59';
+  await idbPut('crops', {id:editingCropId, name, color});
+  document.getElementById('cropEditModal').remove();
+  toast('저장했어요'); renderCrops();
 }
-async function deleteCrop(){
-  if(!editingCropId) return;
+async function deleteCropConfirm(){
   await idbDelete('crops', editingCropId);
-  closeModal('cropModal');
-  toast('삭제했어요');
-  renderCrops();
+  document.getElementById('cropEditModal').remove();
+  toast('삭제했어요'); renderCrops();
 }
 
 /* ================= 새 시교 등록 ================= */
+let selectedCropId = null;
+let useCustomCrop = false;
+
 async function renderNewTrialForm(){
+  await ensurePresetCrops();
+  selectedCropId = null;
+  useCustomCrop = false;
+  document.getElementById('customCropBox').classList.add('hidden');
+  document.getElementById('ntSeg').value='';
+  document.getElementById('ntName').value='';
+  document.getElementById('customCropName').value='';
+
+  const cat = document.getElementById('colorCatalog');
+  cat.innerHTML = COLOR_CATALOG.map((col,i)=>`<div class="color-dot ${i===4?'sel':''}" style="background:${col}" onclick="pickCustomColor('${col}', this)"></div>`).join('');
+  window._customColor = ()=> COLOR_CATALOG[4];
+  document.getElementById('customColorPicker').oninput = (e)=>{
+    document.querySelectorAll('#colorCatalog .color-dot').forEach(d=>d.classList.remove('sel'));
+    window._customColor = ()=> e.target.value;
+  };
+
   const crops = await idbGetAll('crops');
-  const sel = document.getElementById('ntCrop');
-  if(crops.length===0){
-    document.getElementById('ntNoCrop').style.display='block';
-    sel.innerHTML='';
-    return;
-  }
-  document.getElementById('ntNoCrop').style.display='none';
-  sel.innerHTML = crops.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  onCropChange();
+  const tiles = document.getElementById('cropTiles');
+  tiles.innerHTML = crops.map(c=>{
+    const fg = textColorFor(c.color);
+    return `<div class="crop-tile" data-id="${c.id}" onclick="selectCropTile('${c.id}', this)">
+      <div class="swatch" style="background:${c.color};color:${fg};">${c.name[0]}</div>
+      <div class="label">${c.name}</div>
+    </div>`;
+  }).join('') + `
+    <div class="crop-tile add" onclick="selectCustomCrop(this)">
+      <div class="swatch">+</div>
+      <div class="label">직접입력</div>
+    </div>`;
 }
-async function onCropChange(){
-  const cropId = document.getElementById('ntCrop').value;
-  if(!cropId) return;
-  const c = await idbGet('crops', cropId);
-  document.getElementById('ntProductField').style.display = c && c.useProduct ? 'block':'none';
+function pickCustomColor(col, el){
+  window._customColor = ()=>col;
+  document.querySelectorAll('#colorCatalog .color-dot').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function selectCropTile(cropId, el){
+  selectedCropId = cropId; useCustomCrop = false;
+  document.querySelectorAll('.crop-tile').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('customCropBox').classList.add('hidden');
+}
+function selectCustomCrop(el){
+  selectedCropId = null; useCustomCrop = true;
+  document.querySelectorAll('.crop-tile').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('customCropBox').classList.remove('hidden');
 }
 async function createTrial(){
-  const cropId = document.getElementById('ntCrop').value;
-  const variety = document.getElementById('ntVariety').value.trim();
-  const product = document.getElementById('ntProduct').value.trim();
-  const trialName = document.getElementById('ntTrialName').value.trim();
-  if(!cropId || !variety || !trialName){ toast('품종명과 시교명을 입력해주세요'); return; }
+  const seg = document.getElementById('ntSeg').value.trim();
+  const name = document.getElementById('ntName').value.trim();
+  if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
+
+  let cropId = selectedCropId;
+  if(useCustomCrop){
+    const cname = document.getElementById('customCropName').value.trim();
+    if(!cname){ toast('품목명을 입력해주세요'); return; }
+    const color = window._customColor ? window._customColor() : '#4a7c59';
+    cropId = uid();
+    await idbPut('crops', {id:cropId, name:cname, color});
+  }
+  if(!cropId){ toast('품목을 선택해주세요'); return; }
+
   const id = uid();
-  await idbPut('trials', {id, cropId, variety, product, trialName, createdAt: Date.now()});
-  await idbPut('meta', {key:'lastUsed', value:{cropId, variety, product, trialId:id}});
+  await idbPut('trials', {id, cropId, seg, name, createdAt: Date.now()});
+  await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
 }
@@ -583,14 +714,13 @@ async function renderDetail(trialId){
   const t = await idbGet('trials', trialId);
   if(!t){ go('home'); return; }
   const c = await idbGet('crops', t.cropId);
-  document.getElementById('detailTitle').textContent = t.trialName;
+  document.getElementById('detailTitle').textContent = t.name;
   const favMeta = (await idbGet('meta','favorites'))?.value || [];
   document.getElementById('favBtn').textContent = favMeta.includes(trialId) ? '★':'☆';
 
   const photos = (await idbGetAll('photos')).filter(p=>p.trialId===trialId).sort((a,b)=>a.date.localeCompare(b.date));
   allPhotosCache = photos;
 
-  // 날짜 목록(오름차순)
   const dates = [...new Set(photos.map(p=>p.date))];
   const cmpOld = document.getElementById('cmpOld'), cmpNew = document.getElementById('cmpNew');
   cmpOld.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
@@ -598,12 +728,10 @@ async function renderDetail(trialId){
   if(dates.length){ cmpOld.value = dates[0]; cmpNew.value = dates[dates.length-1]; }
   renderCompare();
 
-  // 타임라인 (썸네일 최대 10개, 최신순)
   const tl = document.getElementById('timelineGrid');
   const recentPhotos = [...photos].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
   tl.innerHTML = recentPhotos.map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('') || '<p class="empty">아직 사진이 없어요</p>';
 
-  // 전체 사진 (날짜별 그룹, 최신순)
   const grouped = {};
   photos.forEach(p=>{ (grouped[p.date] = grouped[p.date]||[]).push(p); });
   const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
@@ -674,7 +802,7 @@ async function renderUpload(trialId){
   document.getElementById('uploadNote').value='';
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
-  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.variety}${t.product? ' / '+t.product:''} / ${t.trialName}`;
+  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / SEG ${t.seg} / ${t.name}`;
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
@@ -711,8 +839,8 @@ async function renderReport(trialId){
     return {date:d, url: p? URL.createObjectURL(p.blob): null};
   });
   document.getElementById('reportCard').innerHTML = `
-    <div class="report-head">${t.trialName} 생육 리포트</div>
-    <div class="report-sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''} · ${pickDates[0]||'-'}~${pickDates[pickDates.length-1]||'-'}</div>
+    <div class="report-head">${t.name} 생육 리포트</div>
+    <div class="report-sub">${c.name} · SEG ${t.seg} · ${pickDates[0]||'-'}~${pickDates[pickDates.length-1]||'-'}</div>
     <div class="report-row">
       ${cells.map(cell=>`<div class="cell">${cell.url?`<img src="${cell.url}">`:'<div style="aspect-ratio:1;background:#eee;border-radius:7px;"></div>'}<div class="cap">${cell.date}</div></div>`).join('')}
     </div>`;
@@ -726,9 +854,9 @@ async function buildReportCanvas(){
   const ctx = canvas.getContext('2d');
   ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#3c3226'; ctx.font='bold 28px sans-serif';
-  ctx.fillText(`${t.trialName} 생육 리포트`, 20, 38);
+  ctx.fillText(`${t.name} 생육 리포트`, 20, 38);
   ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
-  ctx.fillText(`${c.name} · ${t.variety}${t.product? ' · '+t.product:''}`, 20, 66);
+  ctx.fillText(`${c.name} · SEG ${t.seg}`, 20, 66);
 
   for(let i=0;i<cells.length;i++){
     const cell = cells[i];
@@ -749,7 +877,7 @@ async function downloadReport(){
   const canvas = await buildReportCanvas();
   canvas.toBlob(blob=>{
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`${window._reportData.t.trialName}_리포트.png`; a.click();
+    a.download=`${window._reportData.t.name}_리포트.png`; a.click();
   });
 }
 async function shareReport(){
@@ -764,8 +892,17 @@ async function shareReport(){
   });
 }
 
+/* ================= 설정 ================= */
+async function confirmResetData(){
+  if(confirm('정말 모든 데이터(품목, 시교, 사진)를 삭제할까요? 이 작업은 되돌릴 수 없어요.')){
+    await idbClearAll();
+    toast('초기화됐어요');
+    go('home');
+  }
+}
+
 /* ================= 초기화 ================= */
-openDB().then(()=> go('home'));
+openDB().then(async ()=>{ await ensurePresetCrops(); go('home'); });
 </script>
 </body>
 </html>
