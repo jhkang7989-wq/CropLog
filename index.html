@@ -62,7 +62,7 @@
   header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
   .bottom-tabbar{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);
     width:100%;max-width:480px;background:var(--paper);border-top:1px solid var(--line);
@@ -203,7 +203,7 @@
   .lr-caption{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;z-index:2;max-width:88%;text-align:center;line-height:1.4;}
   .lr-caption-top{top:14px;}
   .lr-caption-bottom{bottom:14px;}
-  .landscape-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;}
+  .landscape-close{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.22);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -235,7 +235,7 @@
   .report-row .cap{font-size:9.5px;color:var(--muted);text-align:center;margin-top:4px;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(30,25,18,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
-  .modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow-y:auto;}
+  .modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;}
   .modal-sheet h3{margin:0 0 14px;font-size:15px;color:var(--soil);}
 
   .lightbox{position:fixed;inset:0;background:#1e1a15;z-index:60;display:flex;flex-direction:column;}
@@ -258,6 +258,14 @@
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
   .detail-dates{font-size:11.5px;color:var(--muted);margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
+  .float-btn{
+    position:fixed;left:16px;width:42px;height:42px;border-radius:50%;
+    background:var(--paper);border:1px solid var(--line);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,0.16);z-index:25;
+  }
+  #floatBack{bottom:148px;}
+  #floatTop{bottom:96px;}
 </style>
 </head>
 <body>
@@ -513,6 +521,13 @@
 
 <div id="toast" class="toast"></div>
 
+<div class="float-btn hidden" id="floatBack" onclick="history.back()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,4 7,12 15,20"/></svg>
+</div>
+<div class="float-btn hidden" id="floatTop" onclick="scrollActiveMainTop()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18,15 12,9 6,15"/></svg>
+</div>
+
 <script>
 /* ================= IndexedDB 레이어 ================= */
 let db;
@@ -662,11 +677,32 @@ async function go(view, arg, fromPopstate){
   document.getElementById('tabSettings').classList.toggle('active', view==='settings');
 
   window.scrollTo(0,0);
+  bindScrollFloaters(view);
 
   if(!fromPopstate){
     navStack.push({view, arg});
     history.pushState({navIndex: navStack.length-1}, '');
   }
+}
+function bindScrollFloaters(view){
+  const section = document.getElementById('view-'+view);
+  const m = section.querySelector('main');
+  const floatBack = document.getElementById('floatBack');
+  const floatTop = document.getElementById('floatTop');
+  const hasBack = !!section.querySelector('header .back');
+  if(!m){ floatBack.classList.add('hidden'); floatTop.classList.add('hidden'); return; }
+  m.scrollTop = 0;
+  floatBack.classList.add('hidden');
+  floatTop.classList.add('hidden');
+  m.onscroll = ()=>{
+    const show = m.scrollTop > 260;
+    floatTop.classList.toggle('hidden', !show);
+    floatBack.classList.toggle('hidden', !(show && hasBack));
+  };
+}
+function scrollActiveMainTop(){
+  const active = document.querySelector('#app > section:not(.hidden) > main');
+  if(active) active.scrollTo({top:0, behavior:'smooth'});
 }
 window.addEventListener('popstate', ()=>{
   // 모달이 열려있으면 뒤로가기로 모달만 닫기
@@ -1161,6 +1197,13 @@ function renderXCompare(){
   renderXCompareSide('A');
   renderXCompareSide('B');
 }
+function buildTrialLabelLines(c, t, p){
+  const lines = [`${c.name} · ${t.seg}`, t.name];
+  if(t.sowDate) lines.push(`파종일 ${t.sowDate}`);
+  if(t.transplantDate) lines.push(`정식일 ${t.transplantDate}`);
+  if(p) lines.push(`촬영일 ${p.date}`);
+  return lines;
+}
 async function renderXCompareSide(which){
   const state = which==='A' ? xCmpA : xCmpB;
   const imgEl = document.getElementById(`xCmp${which}Img`);
@@ -1174,12 +1217,43 @@ async function renderXCompareSide(which){
   if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.innerHTML = '탭해서<br>시교 선택'; return; }
   const c = await idbGet('crops', t.cropId);
   imgEl.innerHTML = `<img src="${URL.createObjectURL(p.blob)}">`;
-  labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${c.name} · ${t.seg}</b><br>${t.name} · ${p.date}`;
+  const lines = buildTrialLabelLines(c, t, p);
+  labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${lines[0]}</b>` + lines.slice(1).map(l=>`<br>${l}`).join('');
 }
 function resetXCompare(){
   xCmpA = null; xCmpB = null;
   renderXCompare();
   toast('비교를 초기화했어요');
+}
+function enableImgZoom(img){
+  let scale=1, startDist=0, startScale=1, lastTap=0;
+  img.style.transformOrigin = 'center center';
+  img.style.transition = 'transform .15s ease';
+  img.style.touchAction = 'none';
+  function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+  img.addEventListener('touchstart', (e)=>{
+    if(e.touches.length===2){ startDist = dist(e.touches); startScale = scale; }
+  }, {passive:true});
+  img.addEventListener('touchmove', (e)=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const d = dist(e.touches);
+      if(startDist>0){
+        scale = Math.min(3.5, Math.max(1, startScale * (d/startDist)));
+        img.style.transform = `scale(${scale})`;
+      }
+    }
+  }, {passive:false});
+  img.addEventListener('touchend', (e)=>{
+    if(e.touches.length===0){
+      const now = Date.now();
+      if(now - lastTap < 300){
+        scale = scale>1 ? 1 : 2.2;
+        img.style.transform = `scale(${scale})`;
+      }
+      lastTap = now;
+    }
+  });
 }
 function openXCompareLandscape(){
   if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
@@ -1190,18 +1264,22 @@ function openXCompareLandscape(){
   ]).then(async ([tA,pA,tB,pB])=>{
     const cA = await idbGet('crops', tA.cropId);
     const cB = await idbGet('crops', tB.cropId);
+    const linesA = buildTrialLabelLines(cA, tA, pA).join(' · ');
+    const linesB = buildTrialLabelLines(cB, tB, pB).join(' · ');
     const overlay = document.createElement('div');
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
-      <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',18)}</div>
-      <div class="lr-caption lr-caption-top">${cA.name} · ${tA.seg} · ${tA.name} · ${pA.date}</div>
-      <div class="lr-caption lr-caption-bottom">${cB.name} · ${tB.seg} · ${tB.name} · ${pB.date}</div>
+      <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',20)}</div>
+      <div class="lr-caption lr-caption-top">${linesA}</div>
+      <div class="lr-caption lr-caption-bottom">${linesB}</div>
       <div class="landscape-rotator">
-        <div class="lr-imgbox"><img src="${URL.createObjectURL(pA.blob)}"></div>
-        <div class="lr-imgbox"><img src="${URL.createObjectURL(pB.blob)}"></div>
+        <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
+        <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
+    enableImgZoom(document.getElementById('lrImgA'));
+    enableImgZoom(document.getElementById('lrImgB'));
   });
 }
 function openXComparePicker(which){
