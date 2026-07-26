@@ -200,10 +200,10 @@
   .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:6px;}
   .landscape-rotator .lr-imgbox{flex:1;background:#000;overflow:hidden;}
   .landscape-rotator .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
-  .lr-caption{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;z-index:2;max-width:88%;text-align:center;line-height:1.4;}
-  .lr-caption-top{top:14px;}
-  .lr-caption-bottom{bottom:14px;}
-  .landscape-close{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.22);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+  .lr-caption{position:absolute;left:50%;color:#fff;font-size:12px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;z-index:2;max-width:88%;text-align:center;line-height:1.4;}
+  .lr-caption-top{top:50%;transform:translate(-50%,calc(-100% - 6px));}
+  .lr-caption-bottom{bottom:10px;transform:translateX(-50%);}
+  .landscape-close{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.22);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
@@ -690,14 +690,12 @@ function bindScrollFloaters(view){
   const floatBack = document.getElementById('floatBack');
   const floatTop = document.getElementById('floatTop');
   const hasBack = !!section.querySelector('header .back');
-  if(!m){ floatBack.classList.add('hidden'); floatTop.classList.add('hidden'); return; }
+  floatBack.classList.toggle('hidden', !hasBack);
+  if(!m){ floatTop.classList.add('hidden'); return; }
   m.scrollTop = 0;
-  floatBack.classList.add('hidden');
   floatTop.classList.add('hidden');
   m.onscroll = ()=>{
-    const show = m.scrollTop > 260;
-    floatTop.classList.toggle('hidden', !show);
-    floatBack.classList.toggle('hidden', !(show && hasBack));
+    floatTop.classList.toggle('hidden', m.scrollTop <= 260);
   };
 }
 function scrollActiveMainTop(){
@@ -1225,31 +1223,31 @@ function resetXCompare(){
   renderXCompare();
   toast('비교를 초기화했어요');
 }
-function enableImgZoom(img){
+function enableRotatorZoom(rotator){
   let scale=1, startDist=0, startScale=1, lastTap=0;
-  img.style.transformOrigin = 'center center';
-  img.style.transition = 'transform .15s ease';
-  img.style.touchAction = 'none';
+  rotator.style.transition = 'transform .15s ease';
+  rotator.style.touchAction = 'none';
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
-  img.addEventListener('touchstart', (e)=>{
+  function apply(){ rotator.style.transform = `rotate(90deg) scale(${scale})`; }
+  rotator.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){ startDist = dist(e.touches); startScale = scale; }
   }, {passive:true});
-  img.addEventListener('touchmove', (e)=>{
+  rotator.addEventListener('touchmove', (e)=>{
     if(e.touches.length===2){
       e.preventDefault();
       const d = dist(e.touches);
       if(startDist>0){
         scale = Math.min(3.5, Math.max(1, startScale * (d/startDist)));
-        img.style.transform = `scale(${scale})`;
+        apply();
       }
     }
   }, {passive:false});
-  img.addEventListener('touchend', (e)=>{
+  rotator.addEventListener('touchend', (e)=>{
     if(e.touches.length===0){
       const now = Date.now();
       if(now - lastTap < 300){
         scale = scale>1 ? 1 : 2.2;
-        img.style.transform = `scale(${scale})`;
+        apply();
       }
       lastTap = now;
     }
@@ -1272,14 +1270,13 @@ function openXCompareLandscape(){
       <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',20)}</div>
       <div class="lr-caption lr-caption-top">${linesA}</div>
       <div class="lr-caption lr-caption-bottom">${linesB}</div>
-      <div class="landscape-rotator">
+      <div class="landscape-rotator" id="landscapeRotator">
         <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
         <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
-    enableImgZoom(document.getElementById('lrImgA'));
-    enableImgZoom(document.getElementById('lrImgB'));
+    enableRotatorZoom(document.getElementById('landscapeRotator'));
   });
 }
 function openXComparePicker(which){
