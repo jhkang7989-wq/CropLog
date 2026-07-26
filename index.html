@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>시교 관리</title>
+<style>
+  :root{
+    --soil:#3c3226;
+    --leaf:#4a7c59;
+    --leaf-dark:#365c42;
+    --sprout:#8fb996;
+    --sun:#d99a3c;
+    --cream:#f6f4ee;
+    --paper:#ffffff;
+    --line:#e2ddd0;
+    --ink:#2c2620;
+    --muted:#8a8275;
+    --danger:#b5543f;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:var(--cream);
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream);}
+  header.topbar{
+    background:var(--leaf);color:#fff;
+    padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:10;
+  }
+  header.topbar h1{font-size:16px;margin:0;font-weight:700;}
+  header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
+  header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;}
+  main{flex:1;padding:14px 16px 90px;overflow-y:auto;}
+  .hidden{display:none !important;}
+
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--paper);border:1px solid var(--line);border-radius:22px;
+    padding:10px 16px;margin-bottom:16px;
+  }
+  .search-box input{border:none;outline:none;background:transparent;font-size:14px;flex:1;color:var(--ink);}
+  .search-box input::placeholder{color:var(--muted);}
+
+  .section-title{font-size:13px;font-weight:700;color:var(--soil);margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;}
+
+  .pin-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
+  .pin-card{flex:0 0 auto;width:96px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;cursor:pointer;}
+  .pin-thumb{height:52px;border-radius:8px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+  .pin-name{font-size:11px;font-weight:700;line-height:1.3;}
+  .pin-sub{font-size:9.5px;color:var(--muted);margin-top:2px;}
+
+  .list-item{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
+    cursor:pointer;
+  }
+  .list-item .info .name{font-size:13.5px;font-weight:700;}
+  .list-item .info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .list-item .chev{color:var(--muted);}
+  .crop-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+  .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 10px;line-height:1.6;}
+
+  .fab{
+    position:fixed;bottom:24px;left:50%;transform:translateX(calc(-50% + 176px));
+    width:52px;height:52px;background:var(--leaf-dark);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:300;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);border:none;cursor:pointer;z-index:20;
+  }
+  @media (max-width:480px){ .fab{transform:none;right:20px;left:auto;} }
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:700;}
+  .field input[type=text], .field input[type=date], .field select, .field textarea{
+    width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;
+    padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .autofill-tag{display:inline-block;font-size:9px;background:#eaf3ec;color:var(--leaf-dark);padding:2px 7px;border-radius:20px;margin-left:6px;}
+
+  .color-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .color-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;}
+  .color-dot.sel{border-color:var(--soil);}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:14px;}
+  .toggle-row .label{font-size:12.5px;}
+  .switch{position:relative;width:40px;height:22px;background:var(--line);border-radius:20px;cursor:pointer;transition:background .2s;}
+  .switch.on{background:var(--leaf);}
+  .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
+  .switch.on .knob{transform:translateX(18px);}
+
+  .btn{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;}
+  .btn-primary{background:var(--leaf);color:#fff;}
+  .btn-dark{background:var(--leaf-dark);color:#fff;}
+  .btn-ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink);}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+
+  .tab-row{display:flex;gap:6px;margin-bottom:14px;}
+  .tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:12px;font-weight:700;background:var(--paper);border:1px solid var(--line);color:var(--muted);cursor:pointer;}
+  .tab.active{background:var(--leaf);color:#fff;border-color:var(--leaf);}
+
+  .compare-wrap{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px;}
+  .compare-imgs{display:flex;gap:8px;margin-bottom:8px;}
+  .compare-imgs .imgbox{flex:1;aspect-ratio:1;border-radius:9px;overflow:hidden;background:var(--line);position:relative;}
+  .compare-imgs img{width:100%;height:100%;object-fit:cover;}
+  .compare-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+  .compare-select{display:flex;gap:8px;margin-bottom:6px;}
+  .compare-select select{flex:1;font-size:11.5px;padding:7px;border-radius:7px;border:1px solid var(--line);background:var(--paper);}
+
+  .date-group{margin-bottom:16px;}
+  .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
+  .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);}
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--line);cursor:pointer;}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;}
+
+  .camera-box{
+    border:2px dashed var(--sprout);border-radius:12px;background:#f0f6f1;
+    padding:24px 12px;text-align:center;margin-bottom:16px;cursor:pointer;color:var(--leaf-dark);
+  }
+  .camera-box .icon{font-size:28px;display:block;margin-bottom:6px;}
+  .preview-strip{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;}
+  .preview-strip .pv{flex:0 0 auto;width:66px;height:66px;border-radius:8px;overflow:hidden;position:relative;background:var(--line);}
+  .preview-strip .pv img{width:100%;height:100%;object-fit:cover;}
+  .preview-strip .pv .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
+
+  .report-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .report-head{font-size:14px;font-weight:700;color:var(--soil);}
+  .report-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  .report-row{display:flex;gap:8px;}
+  .report-row .cell{flex:1;}
+  .report-row img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;}
+  .report-row .cap{font-size:9.5px;color:var(--muted);text-align:center;margin-top:4px;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(30,25,18,0.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+  .modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow-y:auto;}
+  .modal-sheet h3{margin:0 0 14px;font-size:15px;color:var(--soil);}
+
+  .lightbox{position:fixed;inset:0;background:#1e1a15;z-index:60;display:flex;flex-direction:column;}
+  .lightbox img{flex:1;object-fit:contain;width:100%;}
+  .lightbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
+  .lightbox .lb-actions{display:flex;gap:8px;padding:12px 14px 18px;}
+  .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px;border-radius:9px;font-size:12px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
+  .lightbox .lb-actions .a.primary{background:var(--leaf);}
+
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--soil);color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== HOME ===== -->
+  <section id="view-home">
+    <header class="topbar">
+      <h1>🌱 시교 관리</h1>
+      <button class="action" onclick="go('crops')">☰</button>
+    </header>
+    <main>
+      <div class="search-box">
+        🔍
+        <input id="searchInput" type="text" placeholder="시교명, 품종으로 검색" oninput="renderSearch()">
+      </div>
+
+      <div id="favSection">
+        <div class="section-title">📌 즐겨찾는 시교</div>
+        <div id="favRow" class="pin-row"></div>
+      </div>
+
+      <div id="searchResults" class="hidden">
+        <div class="section-title">검색 결과</div>
+        <div id="searchList"></div>
+      </div>
+
+      <div id="recentSection">
+        <div class="section-title">최근 등록</div>
+        <div id="recentList"></div>
+      </div>
+    </main>
+    <button class="fab" onclick="go('newtrial')">+</button>
+  </section>
+
+  <!-- ===== 품목 관리 ===== -->
+  <section id="view-crops" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1>품목 관리</h1>
+      <button class="action" onclick="openCropModal()">+</button>
+    </header>
+    <main>
+      <div id="cropList"></div>
+      <p class="empty" id="cropEmpty">등록된 품목이 없어요. 우측 상단 + 로 추가해보세요.</p>
+    </main>
+  </section>
+
+  <!-- ===== 새 시교 등록 ===== -->
+  <section id="view-newtrial" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 취소</button>
+      <h1>새 시교 등록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="field">
+        <label>품목</label>
+        <select id="ntCrop" onchange="onCropChange()"></select>
+      </div>
+      <div class="field">
+        <label>품종명</label>
+        <input type="text" id="ntVariety" placeholder="예: 청양고추">
+      </div>
+      <div class="field" id="ntProductField">
+        <label>제품명</label>
+        <input type="text" id="ntProduct" placeholder="예: A사 청양1호">
+      </div>
+      <div class="field">
+        <label>시교명</label>
+        <input type="text" id="ntTrialName" placeholder="예: 1구역 시교">
+      </div>
+      <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
+      <p class="empty" id="ntNoCrop" style="display:none;">먼저 품목을 등록해주세요.</p>
+    </main>
+  </section>
+
+  <!-- ===== 시교 상세 ===== -->
+  <section id="view-detail" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1 id="detailTitle">시교</h1>
+      <button class="action" id="favBtn" onclick="toggleFav()">☆</button>
+    </header>
+    <main>
+      <div class="tab-row">
+        <div class="tab active" id="tabCompare" onclick="switchTab('compare')">성장 비교</div>
+        <div class="tab" id="tabAll" onclick="switchTab('all')">전체 사진</div>
+      </div>
+
+      <div id="panelCompare">
+        <div class="compare-wrap">
+          <div class="compare-select">
+            <select id="cmpOld" onchange="renderCompare()"></select>
+            <select id="cmpNew" onchange="renderCompare()"></select>
+          </div>
+          <div class="compare-imgs">
+            <div class="imgbox" id="cmpOldImg"></div>
+            <div class="imgbox" id="cmpNewImg"></div>
+          </div>
+          <div class="compare-labels" id="cmpLabels"><span>-</span><span>-</span></div>
+        </div>
+        <div class="section-title">촬영 타임라인</div>
+        <div class="photo-grid" id="timelineGrid" style="grid-template-columns:repeat(5,1fr);"></div>
+      </div>
+
+      <div id="panelAll" class="hidden"></div>
+
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="go('upload', currentTrialId)">📷 사진 추가</button>
+      <button class="btn btn-ghost" style="margin-top:8px;" onclick="go('report', currentTrialId)">📤 리포트 공유</button>
+    </main>
+  </section>
+
+  <!-- ===== 업로드 ===== -->
+  <section id="view-upload" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('detail', currentTrialId)">‹ 취소</button>
+      <h1>사진 등록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="camera-box" onclick="document.getElementById('cameraInput').click()">
+        <span class="icon">📷</span>
+        탭하여 촬영 / 여러 장 선택
+      </div>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotoSelect(event)">
+      <div class="preview-strip" id="previewStrip"></div>
+
+      <div class="field">
+        <label>분류 <span class="autofill-tag">자동 채움</span></label>
+        <div style="font-size:13px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:9px;" id="uploadClassifyInfo"></div>
+      </div>
+      <div class="field">
+        <label>촬영일자</label>
+        <input type="date" id="uploadDate">
+      </div>
+      <div class="field">
+        <label>메모 (선택)</label>
+        <textarea id="uploadNote" placeholder="생육상태, 특이사항 등"></textarea>
+      </div>
+      <button class="btn btn-dark" onclick="savePhotos()">저장</button>
+    </main>
+  </section>
+
+  <!-- ===== 리포트 공유 ===== -->
+  <section id="view-report" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('detail', currentTrialId)">‹ 뒤로</button>
+      <h1>리포트 공유</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="report-card" id="reportCard"></div>
+      <canvas id="reportCanvas" style="display:none;"></canvas>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="downloadReport()">이미지 저장</button>
+        <button class="btn btn-primary" onclick="shareReport()">공유하기</button>
+      </div>
+    </main>
+  </section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ================= IndexedDB 레이어 ================= */
+let db;
+const DB_NAME = 'sigyoDB', DB_VER = 1;
+
+function openDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('crops')) d.createObjectStore('crops', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('trials')) d.createObjectStore('trials', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', {keyPath:'key'});
+    };
+    req.onsuccess = (e)=>{ db = e.target.result; resolve(db); };
+    req.onerror = (e)=> reject(e);
+  });
+}
+function tx(store, mode='readonly'){ return db.transaction(store, mode).objectStore(store); }
+function idbGetAll(store){
+  return new Promise((res)=>{ const r = tx(store).getAll(); r.onsuccess=()=>res(r.result||[]); });
+}
+function idbGet(store, key){
+  return new Promise((res)=>{ const r = tx(store).get(key); r.onsuccess=()=>res(r.result); });
+}
+function idbPut(store, val){
+  return new Promise((res)=>{ const r = tx(store,'readwrite').put(val); r.onsuccess=()=>res(true); });
+}
+function idbDelete(store, key){
+  return new Promise((res)=>{ const r = tx(store,'readwrite').delete(key); r.onsuccess=()=>res(true); });
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+/* ================= 라우팅 ================= */
+let currentTrialId = null;
+const views = ['home','crops','newtrial','detail','upload','report'];
+async function go(view, arg){
+  views.forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
+  document.getElementById('view-'+view).classList.remove('hidden');
+  if(view==='home'){ await renderHome(); }
+  if(view==='crops'){ await renderCrops(); }
+  if(view==='newtrial'){ await renderNewTrialForm(); }
+  if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
+  if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
+  if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
+  window.scrollTo(0,0);
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ================= 홈 ================= */
+async function renderHome(){
+  const crops = await idbGetAll('crops');
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
+  const trials = await idbGetAll('trials');
+  const favIds = (await idbGet('meta','favorites'))?.value || [];
+
+  // 즐겨찾기
+  const favRow = document.getElementById('favRow');
+  const favTrials = trials.filter(t=>favIds.includes(t.id));
+  if(favTrials.length===0){
+    favRow.innerHTML = '<p class="empty" style="width:100%;">아직 즐겨찾는 시교가 없어요. 시교 상세에서 ☆를 눌러 추가해보세요.</p>';
+  } else {
+    favRow.innerHTML = favTrials.map(t=>{
+      const c = cropMap[t.cropId] || {name:'?',color:'#999'};
+      return `<div class="pin-card" onclick="go('detail','${t.id}')">
+        <div class="pin-thumb" style="background:${c.color}">${c.name}</div>
+        <div class="pin-name">★ ${t.trialName}</div>
+        <div class="pin-sub">${t.variety}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 최근 등록
+  const recentList = document.getElementById('recentList');
+  const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
+  if(sorted.length===0){
+    recentList.innerHTML = '<p class="empty">등록된 시교가 없어요. 우측 하단 + 로 새 시교를 등록해보세요.</p>';
+  } else {
+    recentList.innerHTML = sorted.map(t=>{
+      const c = cropMap[t.cropId] || {name:'?',color:'#999'};
+      return `<div class="list-item" onclick="go('detail','${t.id}')">
+        <div class="info">
+          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.trialName}</div>
+          <div class="sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResults').classList.add('hidden');
+  document.getElementById('favSection').classList.remove('hidden');
+  document.getElementById('recentSection').classList.remove('hidden');
+}
+
+async function renderSearch(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if(!q){
+    document.getElementById('searchResults').classList.add('hidden');
+    document.getElementById('favSection').classList.remove('hidden');
+    document.getElementById('recentSection').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('favSection').classList.add('hidden');
+  document.getElementById('recentSection').classList.add('hidden');
+  document.getElementById('searchResults').classList.remove('hidden');
+
+  const crops = await idbGetAll('crops');
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
+  const trials = await idbGetAll('trials');
+  const matched = trials.filter(t=>{
+    const c = cropMap[t.cropId];
+    return t.trialName.toLowerCase().includes(q) || t.variety.toLowerCase().includes(q)
+      || (t.product||'').toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q));
+  });
+  const list = document.getElementById('searchList');
+  if(matched.length===0){
+    list.innerHTML = '<p class="empty">일치하는 시교가 없어요.</p>';
+  } else {
+    list.innerHTML = matched.map(t=>{
+      const c = cropMap[t.cropId] || {name:'?',color:'#999'};
+      return `<div class="list-item" onclick="go('detail','${t.id}')">
+        <div class="info">
+          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.trialName}</div>
+          <div class="sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''}</div>
+        </div>
+        <div class="chev">›</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ================= 품목 관리 ================= */
+const PRESET_COLORS = ['#c0453b','#d99a3c','#4a7c59','#3c6e8f','#7a548f','#b5754f','#5f6b3f','#8a8275'];
+let editingCropId = null;
+
+async function renderCrops(){
+  const crops = await idbGetAll('crops');
+  const list = document.getElementById('cropList');
+  document.getElementById('cropEmpty').style.display = crops.length? 'none':'block';
+  list.innerHTML = crops.map(c=>`
+    <div class="list-item" onclick="openCropModal('${c.id}')">
+      <div class="info">
+        <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${c.name}</div>
+        <div class="sub">제품명 단계: ${c.useProduct? '사용':'생략'}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`).join('');
+}
+
+function openCropModal(cropId){
+  editingCropId = cropId || null;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.id='cropModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>${cropId? '품목 수정':'새 품목 등록'}</h3>
+      <div class="field">
+        <label>품목명</label>
+        <input type="text" id="cropNameInput" placeholder="예: 고추">
+      </div>
+      <div class="field">
+        <label>카드 색상</label>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="label">제품명 단계 사용</div>
+        <div class="switch" id="useProductSwitch" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+      </div>
+      <div class="btn-row">
+        ${cropId? '<button class="btn btn-ghost" onclick="deleteCrop()">삭제</button>':''}
+        <button class="btn btn-primary" onclick="saveCrop()">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+
+  const grid = document.getElementById('colorGrid');
+  let selColor = PRESET_COLORS[0];
+  grid.innerHTML = PRESET_COLORS.map(col=>`<div class="color-dot" style="background:${col}" data-c="${col}" onclick="selectColor('${col}')"></div>`).join('');
+
+  (async ()=>{
+    if(cropId){
+      const c = await idbGet('crops', cropId);
+      document.getElementById('cropNameInput').value = c.name;
+      selColor = c.color;
+      if(c.useProduct) document.getElementById('useProductSwitch').classList.add('on');
+    }
+    document.querySelectorAll('.color-dot').forEach(d=> d.classList.toggle('sel', d.dataset.c===selColor));
+  })();
+  window._selColor = ()=>selColor;
+  window.selectColor = (col)=>{ selColor = col; document.querySelectorAll('.color-dot').forEach(d=> d.classList.toggle('sel', d.dataset.c===col)); window._selColor=()=>col; };
+}
+function closeModal(id){ const el=document.getElementById(id); if(el) el.remove(); }
+async function saveCrop(){
+  const name = document.getElementById('cropNameInput').value.trim();
+  if(!name){ toast('품목명을 입력해주세요'); return; }
+  const color = window._selColor ? window._selColor() : PRESET_COLORS[0];
+  const useProduct = document.getElementById('useProductSwitch').classList.contains('on');
+  const id = editingCropId || uid();
+  await idbPut('crops', {id, name, color, useProduct});
+  closeModal('cropModal');
+  toast('저장했어요');
+  renderCrops();
+}
+async function deleteCrop(){
+  if(!editingCropId) return;
+  await idbDelete('crops', editingCropId);
+  closeModal('cropModal');
+  toast('삭제했어요');
+  renderCrops();
+}
+
+/* ================= 새 시교 등록 ================= */
+async function renderNewTrialForm(){
+  const crops = await idbGetAll('crops');
+  const sel = document.getElementById('ntCrop');
+  if(crops.length===0){
+    document.getElementById('ntNoCrop').style.display='block';
+    sel.innerHTML='';
+    return;
+  }
+  document.getElementById('ntNoCrop').style.display='none';
+  sel.innerHTML = crops.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  onCropChange();
+}
+async function onCropChange(){
+  const cropId = document.getElementById('ntCrop').value;
+  if(!cropId) return;
+  const c = await idbGet('crops', cropId);
+  document.getElementById('ntProductField').style.display = c && c.useProduct ? 'block':'none';
+}
+async function createTrial(){
+  const cropId = document.getElementById('ntCrop').value;
+  const variety = document.getElementById('ntVariety').value.trim();
+  const product = document.getElementById('ntProduct').value.trim();
+  const trialName = document.getElementById('ntTrialName').value.trim();
+  if(!cropId || !variety || !trialName){ toast('품종명과 시교명을 입력해주세요'); return; }
+  const id = uid();
+  await idbPut('trials', {id, cropId, variety, product, trialName, createdAt: Date.now()});
+  await idbPut('meta', {key:'lastUsed', value:{cropId, variety, product, trialId:id}});
+  toast('시교가 등록됐어요');
+  go('upload', id);
+}
+
+/* ================= 시교 상세 ================= */
+async function toggleFav(){
+  const favMeta = (await idbGet('meta','favorites')) || {key:'favorites', value:[]};
+  const list = favMeta.value;
+  const idx = list.indexOf(currentTrialId);
+  if(idx>=0) list.splice(idx,1); else list.push(currentTrialId);
+  await idbPut('meta', {key:'favorites', value:list});
+  document.getElementById('favBtn').textContent = idx>=0 ? '☆':'★';
+}
+let allPhotosCache = [];
+async function renderDetail(trialId){
+  const t = await idbGet('trials', trialId);
+  if(!t){ go('home'); return; }
+  const c = await idbGet('crops', t.cropId);
+  document.getElementById('detailTitle').textContent = t.trialName;
+  const favMeta = (await idbGet('meta','favorites'))?.value || [];
+  document.getElementById('favBtn').textContent = favMeta.includes(trialId) ? '★':'☆';
+
+  const photos = (await idbGetAll('photos')).filter(p=>p.trialId===trialId).sort((a,b)=>a.date.localeCompare(b.date));
+  allPhotosCache = photos;
+
+  // 날짜 목록(오름차순)
+  const dates = [...new Set(photos.map(p=>p.date))];
+  const cmpOld = document.getElementById('cmpOld'), cmpNew = document.getElementById('cmpNew');
+  cmpOld.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  cmpNew.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  if(dates.length){ cmpOld.value = dates[0]; cmpNew.value = dates[dates.length-1]; }
+  renderCompare();
+
+  // 타임라인 (썸네일 최대 10개, 최신순)
+  const tl = document.getElementById('timelineGrid');
+  const recentPhotos = [...photos].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  tl.innerHTML = recentPhotos.map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('') || '<p class="empty">아직 사진이 없어요</p>';
+
+  // 전체 사진 (날짜별 그룹, 최신순)
+  const grouped = {};
+  photos.forEach(p=>{ (grouped[p.date] = grouped[p.date]||[]).push(p); });
+  const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  const panelAll = document.getElementById('panelAll');
+  if(dateKeys.length===0){
+    panelAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
+  } else {
+    panelAll.innerHTML = dateKeys.map(d=>`
+      <div class="date-group">
+        <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
+        <div class="photo-grid">
+          ${grouped[d].map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+}
+function switchTab(tab){
+  document.getElementById('tabCompare').classList.toggle('active', tab==='compare');
+  document.getElementById('tabAll').classList.toggle('active', tab==='all');
+  document.getElementById('panelCompare').classList.toggle('hidden', tab!=='compare');
+  document.getElementById('panelAll').classList.toggle('hidden', tab!=='all');
+}
+function renderCompare(){
+  const oldD = document.getElementById('cmpOld').value, newD = document.getElementById('cmpNew').value;
+  const oldP = allPhotosCache.find(p=>p.date===oldD);
+  const newP = allPhotosCache.find(p=>p.date===newD);
+  document.getElementById('cmpOldImg').innerHTML = oldP? `<img src="${URL.createObjectURL(oldP.blob)}">`:'';
+  document.getElementById('cmpNewImg').innerHTML = newP? `<img src="${URL.createObjectURL(newP.blob)}">`:'';
+  document.getElementById('cmpLabels').innerHTML = `<span>${oldD||'-'}</span><span>${newD||'-'}</span>`;
+}
+function openLightbox(photoId){
+  idbGet('photos', photoId).then(p=>{
+    if(!p) return;
+    const url = URL.createObjectURL(p.blob);
+    const lb = document.createElement('div');
+    lb.className='lightbox'; lb.id='lightboxEl';
+    lb.innerHTML = `
+      <div class="lb-top"><span>${p.date}${p.note? ' · '+p.note:''}</span><span onclick="document.getElementById('lightboxEl').remove()">✕</span></div>
+      <img src="${url}">
+      <div class="lb-actions">
+        <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
+        <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
+      </div>`;
+    document.body.appendChild(lb);
+  });
+}
+async function downloadBlob(photoId){
+  const p = await idbGet('photos', photoId);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(p.blob); a.download = `${p.date}.jpg`; a.click();
+}
+async function shareBlob(photoId){
+  const p = await idbGet('photos', photoId);
+  const file = new File([p.blob], `${p.date}.jpg`, {type:p.blob.type||'image/jpeg'});
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:'작황 사진'}); }catch(e){}
+  } else {
+    toast('이 브라우저는 공유가 지원되지 않아요. 저장 후 공유해주세요.');
+  }
+}
+
+/* ================= 업로드 ================= */
+let pendingFiles = [];
+async function renderUpload(trialId){
+  pendingFiles = [];
+  document.getElementById('previewStrip').innerHTML='';
+  document.getElementById('uploadDate').value = todayStr();
+  document.getElementById('uploadNote').value='';
+  const t = await idbGet('trials', trialId);
+  const c = await idbGet('crops', t.cropId);
+  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.variety}${t.product? ' / '+t.product:''} / ${t.trialName}`;
+}
+function handlePhotoSelect(e){
+  const files = Array.from(e.target.files);
+  files.forEach(f=> pendingFiles.push(f));
+  renderPreview();
+  e.target.value='';
+}
+function renderPreview(){
+  const strip = document.getElementById('previewStrip');
+  strip.innerHTML = pendingFiles.map((f,i)=>`
+    <div class="pv"><img src="${URL.createObjectURL(f)}"><div class="rm" onclick="removePending(${i})">✕</div></div>`).join('');
+}
+function removePending(i){ pendingFiles.splice(i,1); renderPreview(); }
+async function savePhotos(){
+  if(pendingFiles.length===0){ toast('사진을 먼저 선택해주세요'); return; }
+  const date = document.getElementById('uploadDate').value || todayStr();
+  const note = document.getElementById('uploadNote').value.trim();
+  for(const f of pendingFiles){
+    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob:f, note, createdAt:Date.now()});
+  }
+  toast(`사진 ${pendingFiles.length}장 저장됐어요`);
+  go('detail', currentTrialId);
+}
+
+/* ================= 리포트 공유 ================= */
+async function renderReport(trialId){
+  const t = await idbGet('trials', trialId);
+  const c = await idbGet('crops', t.cropId);
+  const photos = (await idbGetAll('photos')).filter(p=>p.trialId===trialId);
+  const dates = [...new Set(photos.map(p=>p.date))].sort();
+  const pickDates = dates.length<=3 ? dates : [dates[0], dates[Math.floor(dates.length/2)], dates[dates.length-1]];
+  const cells = pickDates.map(d=>{
+    const p = photos.find(x=>x.date===d);
+    return {date:d, url: p? URL.createObjectURL(p.blob): null};
+  });
+  document.getElementById('reportCard').innerHTML = `
+    <div class="report-head">${t.trialName} 생육 리포트</div>
+    <div class="report-sub">${c.name} · ${t.variety}${t.product? ' · '+t.product:''} · ${pickDates[0]||'-'}~${pickDates[pickDates.length-1]||'-'}</div>
+    <div class="report-row">
+      ${cells.map(cell=>`<div class="cell">${cell.url?`<img src="${cell.url}">`:'<div style="aspect-ratio:1;background:#eee;border-radius:7px;"></div>'}<div class="cap">${cell.date}</div></div>`).join('')}
+    </div>`;
+  window._reportData = {t, c, cells};
+}
+async function buildReportCanvas(){
+  const {t,c,cells} = window._reportData;
+  const canvas = document.getElementById('reportCanvas');
+  const W=900, cellW = Math.floor((W-40)/Math.max(cells.length,1)), cellH=cellW, headerH=90;
+  canvas.width = W; canvas.height = headerH + cellH + 60;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#3c3226'; ctx.font='bold 28px sans-serif';
+  ctx.fillText(`${t.trialName} 생육 리포트`, 20, 38);
+  ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
+  ctx.fillText(`${c.name} · ${t.variety}${t.product? ' · '+t.product:''}`, 20, 66);
+
+  for(let i=0;i<cells.length;i++){
+    const cell = cells[i];
+    const x = 20 + i*cellW;
+    if(cell.url){
+      await new Promise(res=>{
+        const img = new Image();
+        img.onload=()=>{ ctx.drawImage(img, x, headerH, cellW-10, cellH); res(); };
+        img.src = cell.url;
+      });
+    }
+    ctx.fillStyle='#8a8275'; ctx.font='14px sans-serif';
+    ctx.fillText(cell.date, x, headerH+cellH+22);
+  }
+  return canvas;
+}
+async function downloadReport(){
+  const canvas = await buildReportCanvas();
+  canvas.toBlob(blob=>{
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`${window._reportData.t.trialName}_리포트.png`; a.click();
+  });
+}
+async function shareReport(){
+  const canvas = await buildReportCanvas();
+  canvas.toBlob(async blob=>{
+    const file = new File([blob], 'report.png', {type:'image/png'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'생육 리포트'}); }catch(e){}
+    } else {
+      toast('이 브라우저는 공유가 지원되지 않아요. 이미지 저장 후 공유해주세요.');
+    }
+  });
+}
+
+/* ================= 초기화 ================= */
+openDB().then(()=> go('home'));
+</script>
+</body>
+</html>
