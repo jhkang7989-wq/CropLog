@@ -197,12 +197,12 @@
   .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
   .xcmp-label .crop-dot{margin-right:4px;}
   .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:6px;}
-  .landscape-rotator .lr-imgbox{flex:1;background:#000;overflow:hidden;}
-  .landscape-rotator .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
-  .lr-caption{position:absolute;left:50%;color:#fff;font-size:12px;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;z-index:2;max-width:88%;text-align:center;line-height:1.4;}
-  .lr-caption-top{top:50%;transform:translate(-50%,calc(-100% - 6px));}
-  .lr-caption-bottom{bottom:10px;transform:translateX(-50%);}
+  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;}
+  .lr-col{flex:1;display:flex;flex-direction:row;min-width:0;}
+  .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
+  .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
+  .lr-caption-slot{flex:0 0 78px;}
+  .lr-caption-text{position:fixed;color:#eee;font-size:11px;line-height:1.4;text-align:center;z-index:2;padding:0 6px;box-sizing:border-box;display:none;}
   .landscape-close{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.22);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 
   .date-group{margin-bottom:16px;}
@@ -264,8 +264,8 @@
     display:flex;align-items:center;justify-content:center;cursor:pointer;
     box-shadow:0 3px 10px rgba(0,0,0,0.16);z-index:25;
   }
-  #floatBack{bottom:148px;}
-  #floatTop{bottom:96px;}
+  #floatBack{bottom:118px;}
+  #floatTop{bottom:66px;}
 </style>
 </head>
 <body>
@@ -1197,8 +1197,10 @@ function renderXCompare(){
 }
 function buildTrialLabelLines(c, t, p){
   const lines = [`${c.name} · ${t.seg}`, t.name];
-  if(t.sowDate) lines.push(`파종일 ${t.sowDate}`);
-  if(t.transplantDate) lines.push(`정식일 ${t.transplantDate}`);
+  const dateBits = [];
+  if(t.sowDate) dateBits.push(`파종일 ${t.sowDate}`);
+  if(t.transplantDate) dateBits.push(`정식일 ${t.transplantDate}`);
+  if(dateBits.length) lines.push(dateBits.join(' · '));
   if(p) lines.push(`촬영일 ${p.date}`);
   return lines;
 }
@@ -1228,7 +1230,14 @@ function enableRotatorZoom(rotator){
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
-  function apply(){ rotator.style.transform = `rotate(90deg) scale(${scale})`; }
+  function setCaptionsVisible(v){
+    ['lrCapA','lrCapB'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.visibility = v?'visible':'hidden'; });
+  }
+  function apply(){
+    rotator.style.transform = `rotate(90deg) scale(${scale})`;
+    setCaptionsVisible(scale<=1.01);
+    if(scale<=1.01) placeLandscapeCaptions();
+  }
   rotator.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){ startDist = dist(e.touches); startScale = scale; }
   }, {passive:true});
@@ -1262,21 +1271,45 @@ function openXCompareLandscape(){
   ]).then(async ([tA,pA,tB,pB])=>{
     const cA = await idbGet('crops', tA.cropId);
     const cB = await idbGet('crops', tB.cropId);
-    const linesA = buildTrialLabelLines(cA, tA, pA).join(' · ');
-    const linesB = buildTrialLabelLines(cB, tB, pB).join(' · ');
+    const linesA = buildTrialLabelLines(cA, tA, pA).join('<br>');
+    const linesB = buildTrialLabelLines(cB, tB, pB).join('<br>');
     const overlay = document.createElement('div');
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
       <div class="landscape-close" onclick="removeIfExists('landscapeOverlay')">${icon('close',20)}</div>
-      <div class="lr-caption lr-caption-top">${linesA}</div>
-      <div class="lr-caption lr-caption-bottom">${linesB}</div>
       <div class="landscape-rotator" id="landscapeRotator">
-        <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
-        <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
-      </div>`;
+        <div class="lr-col">
+          <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
+          <div class="lr-caption-slot" id="lrSlotA"></div>
+        </div>
+        <div class="lr-col">
+          <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
+          <div class="lr-caption-slot" id="lrSlotB"></div>
+        </div>
+      </div>
+      <div class="lr-caption-text" id="lrCapA">${linesA}</div>
+      <div class="lr-caption-text" id="lrCapB">${linesB}</div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
     enableRotatorZoom(document.getElementById('landscapeRotator'));
+    placeLandscapeCaptions();
+  });
+}
+function placeLandscapeCaptions(){
+  requestAnimationFrame(()=>{
+    ['A','B'].forEach(w=>{
+      const slot = document.getElementById(`lrSlot${w}`);
+      const cap = document.getElementById(`lrCap${w}`);
+      if(!slot || !cap) return;
+      const r = slot.getBoundingClientRect();
+      cap.style.left = r.left+'px';
+      cap.style.top = r.top+'px';
+      cap.style.width = r.width+'px';
+      cap.style.height = r.height+'px';
+      cap.style.display = 'flex';
+      cap.style.alignItems = 'center';
+      cap.style.justifyContent = 'center';
+    });
   });
 }
 function openXComparePicker(which){
