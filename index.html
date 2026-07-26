@@ -27,6 +27,23 @@
     --danger:#b5543f;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @keyframes viewFadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  #app > section:not(.hidden){ animation: viewFadeIn .22s cubic-bezier(.22,.61,.36,1); }
+  @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes sheetUp{ from{opacity:0; transform:translateY(24px);} to{opacity:1; transform:translateY(0);} }
+  .modal-backdrop{ animation: backdropIn .18s ease; }
+  .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
+  @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
+  .lightbox{ animation: lightboxIn .18s ease; }
+  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
+    transition: transform .12s ease, opacity .12s ease, background-color .15s ease;
+  }
+  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
+    transform: scale(0.96); opacity:0.85;
+  }
+  .switch{ transition: background-color .18s ease; }
+  .switch .knob{ transition: transform .18s cubic-bezier(.22,.61,.36,1); }
   html,body{
     margin:0;padding:0;height:100%;
     background:var(--cream);
@@ -45,7 +62,7 @@
   header.topbar .back{background:none;border:none;color:#fff;font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  main{flex:1;padding:14px 16px 90px;overflow-y:auto;}
+  main{flex:1;padding:14px 16px 90px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
   .hidden{display:none !important;}
 
   .search-box{
@@ -56,8 +73,8 @@
   .search-box input{border:none;outline:none;background:transparent;font-size:14px;flex:1;color:var(--ink);}
   .search-box input::placeholder{color:var(--muted);}
 
-  .section-title{font-size:13px;font-weight:800;color:var(--soil);margin:20px 0 10px;display:flex;align-items:center;gap:6px;justify-content:space-between;}
-  .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;}
+  .section-title{font-size:13px;font-weight:800;color:var(--soil);margin:20px 0 10px;display:flex;align-items:center;gap:6px;}
+  .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;margin-left:auto;}
 
   /* ---- 즐겨찾기: 세련된 핀 카드 (컬러 그라데이션 + 리본) ---- */
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
@@ -201,6 +218,10 @@
 
   .lightbox{position:fixed;inset:0;background:#1e1a15;z-index:60;display:flex;flex-direction:column;}
   .lightbox img{flex:1;object-fit:contain;width:100%;}
+  .lb-imgwrap{position:relative;flex:1;display:flex;overflow:hidden;}
+  .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;background:rgba(255,255,255,0.14);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;z-index:5;}
+  .lb-prev{left:10px;}
+  .lb-next{right:10px;}
   .lightbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
   .lightbox .lb-actions{display:flex;gap:8px;padding:12px 14px 18px;}
   .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px;border-radius:9px;font-size:12px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
@@ -504,7 +525,9 @@ function icon(name, size){
     note:   `<svg ${c} ${s}><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>`,
     close:  `<svg ${c} ${s}><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>`,
     check:  `<svg ${c} ${s}><polyline points="4,12 9,17 20,6"/></svg>`,
-    plus:   `<svg ${c} ${s}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`
+    plus:   `<svg ${c} ${s}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+    chevLeft: `<svg ${c} ${s}><polyline points="15,4 7,12 15,20"/></svg>`,
+    chevRight: `<svg ${c} ${s}><polyline points="9,4 17,12 9,20"/></svg>`
   };
   return icons[name] || '';
 }
@@ -583,10 +606,16 @@ async function loadSettings(){
 async function saveSettings(){
   await idbPut('meta', {key:'settings', value:appSettings});
 }
+function vibrate(pattern){
+  if(navigator.vibrate){
+    try{ navigator.vibrate(pattern); }catch(e){}
+  }
+}
 function rawToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 1800);
+  vibrate(15);
 }
 function toast(msg){
   if(!appSettings.feedback) return;
@@ -713,7 +742,7 @@ function showConfirm({title, message, confirmLabel='확인', cancelLabel='취소
       </div>`;
     document.body.appendChild(backdrop);
     document.getElementById('confirmCancelBtn').onclick = ()=>{ removeIfExists('confirmModal'); resolve(false); };
-    document.getElementById('confirmOkBtn').onclick = ()=>{ removeIfExists('confirmModal'); resolve(true); };
+    document.getElementById('confirmOkBtn').onclick = ()=>{ if(appSettings.feedback) vibrate(danger?[15,60,15]:15); removeIfExists('confirmModal'); resolve(true); };
   });
 }
 function showAlert({title, message, okLabel='확인'}){
@@ -870,6 +899,7 @@ async function toggleFav(){
   if(idx>=0) list.splice(idx,1); else list.push(currentTrialId);
   await idbPut('meta', {key:'favorites', value:list});
   document.getElementById('favBtn').innerHTML = idx>=0 ? icon('star',17) : icon('starFilled',17);
+  if(appSettings.feedback) vibrate(idx>=0 ? 10 : [10,40,10]);
 }
 async function openTrialEditModal(){
   removeIfExists('trialEditModal');
@@ -1070,21 +1100,52 @@ async function deleteNote(noteId){
   renderNotes(currentTrialId);
 }
 
+let lightboxIndex = -1;
 function openLightbox(photoId){
-  idbGet('photos', photoId).then(p=>{
-    if(!p) return;
-    const url = URL.createObjectURL(p.blob);
-    const lb = document.createElement('div');
+  lightboxIndex = allPhotosCache.findIndex(p=>p.id===photoId);
+  if(lightboxIndex<0) return;
+  renderLightbox();
+}
+function renderLightbox(){
+  const p = allPhotosCache[lightboxIndex];
+  if(!p) return;
+  const url = URL.createObjectURL(p.blob);
+  let lb = document.getElementById('lightboxEl');
+  if(!lb){
+    lb = document.createElement('div');
     lb.className='lightbox'; lb.id='lightboxEl';
-    lb.innerHTML = `
-      <div class="lb-top"><span>${p.date}${p.note? ' · '+p.note:''}</span><span onclick="document.getElementById('lightboxEl').remove()">${icon('close',18)}</span></div>
-      <img src="${url}">
-      <div class="lb-actions">
-        <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
-        <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
-      </div>`;
     document.body.appendChild(lb);
-  });
+  }
+  lb.innerHTML = `
+    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
+    <div class="lb-imgwrap">
+      ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
+      <img src="${url}">
+      ${lightboxIndex<allPhotosCache.length-1? `<div class="lb-nav lb-next" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>`:''}
+    </div>
+    <div class="lb-actions">
+      <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
+      <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
+    </div>`;
+  attachLightboxSwipe(lb);
+}
+function lightboxNav(dir){
+  const newIdx = lightboxIndex + dir;
+  if(newIdx<0 || newIdx>=allPhotosCache.length) return;
+  lightboxIndex = newIdx;
+  renderLightbox();
+}
+function closeLightbox(){ removeIfExists('lightboxEl'); }
+function attachLightboxSwipe(el){
+  let startX=0, startY=0;
+  el.ontouchstart = (e)=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; };
+  el.ontouchend = (e)=>{
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)*1.2){
+      if(dx<0) lightboxNav(1); else lightboxNav(-1);
+    }
+  };
 }
 async function downloadBlob(photoId){
   const p = await idbGet('photos', photoId);
