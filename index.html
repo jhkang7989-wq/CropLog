@@ -201,7 +201,7 @@
   .xcmp-col .imgbox img{width:100%;height:100%;object-fit:cover;}
   .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
   .xcmp-label .crop-dot{margin-right:4px;}
-  .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;touch-action:none;}
   .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;}
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
@@ -343,7 +343,7 @@
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v17 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v18 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -421,12 +421,13 @@
       <div id="detailDates" class="detail-dates hidden"></div>
       <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> 성장 비교 <span class="link" onclick="resetDetailCompare()">초기화</span></div>
       <div class="compare-wrap compare-wrap-big">
-        <div class="compare-imgs compare-imgs-big">
-          <div class="imgbox cmp-tap" id="cmpOldImg" onclick="openComparePicker('old')"></div>
-          <div class="imgbox cmp-tap" id="cmpNewImg" onclick="openComparePicker('new')"></div>
+        <div class="tab-row" style="margin-bottom:10px;">
+          <div class="tab active" id="cmpCount2" onclick="setDetailCompareCount(2)">2장</div>
+          <div class="tab" id="cmpCount3" onclick="setDetailCompareCount(3)">3장</div>
+          <div class="tab" id="cmpCount4" onclick="setDetailCompareCount(4)">4장</div>
         </div>
-        <div class="compare-labels" id="cmpLabels"><span>-</span><span>-</span></div>
-        <div class="compare-hint">사진을 탭해서 비교할 날짜를 바꿀 수 있어요</div>
+        <div class="compare-imgs compare-imgs-big" id="cmpSlotsRow"></div>
+        <div class="compare-hint">사진을 탭해서 비교할 사진을 바꿀 수 있어요</div>
       </div>
       <button class="btn btn-ghost" style="margin-bottom:18px;" onclick="openDetailCompareLandscape()">
         <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
@@ -514,16 +515,12 @@
     </header>
     <main>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:-4px 0 16px;">품목·품종에 상관없이 어떤 제품끼리도 자유롭게 골라 나란히 비교할 수 있어요.</p>
-      <div class="compare-wrap compare-wrap-big" style="display:flex;gap:10px;">
-        <div class="xcmp-col">
-          <div class="imgbox cmp-tap" id="xCmpAImg" onclick="openXComparePicker('A')"></div>
-          <div id="xCmpLabelA" class="xcmp-label">탭해서<br>시교 선택</div>
-        </div>
-        <div class="xcmp-col">
-          <div class="imgbox cmp-tap" id="xCmpBImg" onclick="openXComparePicker('B')"></div>
-          <div id="xCmpLabelB" class="xcmp-label">탭해서<br>시교 선택</div>
-        </div>
+      <div class="tab-row" style="margin-bottom:10px;">
+        <div class="tab active" id="xCmpCount2" onclick="setXCompareCount(2)">2개</div>
+        <div class="tab" id="xCmpCount3" onclick="setXCompareCount(3)">3개</div>
+        <div class="tab" id="xCmpCount4" onclick="setXCompareCount(4)">4개</div>
       </div>
+      <div class="compare-wrap compare-wrap-big" style="display:flex;gap:10px;" id="xCmpSlotsRow"></div>
       <button class="btn btn-ghost" onclick="openXCompareLandscape()">
         <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
         가로로 크게 보기
@@ -1148,7 +1145,7 @@ async function deleteTrialConfirm(){
   go('home');
 }
 let allPhotosCache = [];
-let cmpOldPhotoId = null, cmpNewPhotoId = null;
+let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
 async function renderDetail(trialId){
   const t = await idbGet('trials', trialId);
   if(!t){ go('home'); return; }
@@ -1167,11 +1164,12 @@ async function renderDetail(trialId){
   allPhotosCache = photos;
 
   if(photos.length){
-    if(!cmpOldPhotoId || !photos.find(p=>p.id===cmpOldPhotoId)) cmpOldPhotoId = photos[0].id;
-    if(!cmpNewPhotoId || !photos.find(p=>p.id===cmpNewPhotoId)) cmpNewPhotoId = photos[photos.length-1].id;
+    if(!cmpSlots[0] || !photos.find(p=>p.id===cmpSlots[0])) cmpSlots[0] = photos[0].id;
+    if(!cmpSlots[1] || !photos.find(p=>p.id===cmpSlots[1])) cmpSlots[1] = photos[photos.length-1].id;
   } else {
-    cmpOldPhotoId = null; cmpNewPhotoId = null;
+    cmpSlots = cmpSlots.map(()=>null);
   }
+  renderCompareCountTabs();
   renderCompare();
 
   const grouped = {};
@@ -1192,14 +1190,32 @@ async function renderDetail(trialId){
 
   await renderNotes(trialId);
 }
-function renderCompare(){
-  const oldP = allPhotosCache.find(p=>p.id===cmpOldPhotoId);
-  const newP = allPhotosCache.find(p=>p.id===cmpNewPhotoId);
-  document.getElementById('cmpOldImg').innerHTML = oldP? `<img src="${getPhotoUrl(oldP)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
-  document.getElementById('cmpNewImg').innerHTML = newP? `<img src="${getPhotoUrl(newP)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
-  document.getElementById('cmpLabels').innerHTML = `<span>${oldP? oldP.date:'-'}</span><span>${newP? newP.date:'-'}</span>`;
+function renderCompareCountTabs(){
+  [2,3,4].forEach(n=>{
+    document.getElementById(`cmpCount${n}`).classList.toggle('active', cmpSlots.length===n);
+  });
 }
-function openComparePicker(which){
+function setDetailCompareCount(n){
+  const cur = cmpSlots.length;
+  if(n>cur){
+    while(cmpSlots.length<n) cmpSlots.push(null);
+  } else if(n<cur){
+    cmpSlots = cmpSlots.slice(0,n);
+  }
+  renderCompareCountTabs();
+  renderCompare();
+}
+function renderCompare(){
+  const row = document.getElementById('cmpSlotsRow');
+  row.innerHTML = cmpSlots.map((pid,i)=>{
+    const p = allPhotosCache.find(x=>x.id===pid);
+    return `<div class="xcmp-col">
+      <div class="imgbox cmp-tap" onclick="openComparePicker(${i})">${p? `<img src="${getPhotoUrl(p)}">` : '<div class="cmp-placeholder">탭해서<br>사진 선택</div>'}</div>
+      <div class="xcmp-label">${p? p.date : '-'}</div>
+    </div>`;
+  }).join('');
+}
+function openComparePicker(slotIndex){
   removeIfExists('comparePickModal');
   const grouped = {};
   allPhotosCache.forEach(p=>{ (grouped[p.date]=grouped[p.date]||[]).push(p); });
@@ -1213,30 +1229,43 @@ function openComparePicker(which){
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
-            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto('${which}','${p.id}')"><img src="${getPhotoUrl(p)}"></div>`).join('')}
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto(${slotIndex},'${p.id}')"><img src="${getPhotoUrl(p)}"></div>`).join('')}
           </div>
         </div>`).join('')}
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
 }
-function pickComparePhoto(which, photoId){
-  if(which==='old') cmpOldPhotoId = photoId; else cmpNewPhotoId = photoId;
+function pickComparePhoto(slotIndex, photoId){
+  cmpSlots[slotIndex] = photoId;
   removeIfExists('comparePickModal');
   renderCompare();
 }
 function resetDetailCompare(){
-  cmpOldPhotoId = null;
-  cmpNewPhotoId = null;
+  cmpSlots = cmpSlots.map(()=>null);
   renderCompare();
   toast('비교를 초기화했어요');
 }
 
 /* ================= 품종 비교 (교차 비교) ================= */
-let xCmpA = null, xCmpB = null; // {trialId, photoId}
+let xCmpSlots = [null, null]; // 각 원소: {trialId, photoId} 또는 null, 2~4개
 function renderXCompare(){
-  renderXCompareSide('A');
-  renderXCompareSide('B');
+  const row = document.getElementById('xCmpSlotsRow');
+  row.innerHTML = xCmpSlots.map((_,i)=>`
+    <div class="xcmp-col">
+      <div class="imgbox cmp-tap" id="xCmpImg${i}" onclick="openXComparePicker(${i})"></div>
+      <div id="xCmpLabel${i}" class="xcmp-label">탭해서<br>시교 선택</div>
+    </div>`).join('');
+  xCmpSlots.forEach((_,i)=> renderXCompareSide(i));
+  [2,3,4].forEach(n=>{
+    document.getElementById(`xCmpCount${n}`).classList.toggle('active', xCmpSlots.length===n);
+  });
+}
+function setXCompareCount(n){
+  const cur = xCmpSlots.length;
+  if(n>cur){ while(xCmpSlots.length<n) xCmpSlots.push(null); }
+  else if(n<cur){ xCmpSlots = xCmpSlots.slice(0,n); }
+  renderXCompare();
 }
 function buildTrialLabelLines(c, t, p){
   const lines = [`${c.name} · ${t.seg}`, t.name];
@@ -1247,10 +1276,11 @@ function buildTrialLabelLines(c, t, p){
   if(p) lines.push(`촬영일 ${p.date}`);
   return lines;
 }
-async function renderXCompareSide(which){
-  const state = which==='A' ? xCmpA : xCmpB;
-  const imgEl = document.getElementById(`xCmp${which}Img`);
-  const labelEl = document.getElementById(`xCmpLabel${which}`);
+async function renderXCompareSide(index){
+  const state = xCmpSlots[index];
+  const imgEl = document.getElementById(`xCmpImg${index}`);
+  const labelEl = document.getElementById(`xCmpLabel${index}`);
+  if(!imgEl || !labelEl) return;
   if(!state){
     imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`;
     labelEl.innerHTML = '탭해서<br>시교 선택';
@@ -1264,7 +1294,7 @@ async function renderXCompareSide(which){
   labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${lines[0]}</b>` + lines.slice(1).map(l=>`<br>${l}`).join('');
 }
 function resetXCompare(){
-  xCmpA = null; xCmpB = null;
+  xCmpSlots = xCmpSlots.map(()=>null);
   renderXCompare();
   toast('비교를 초기화했어요');
 }
@@ -1319,19 +1349,16 @@ function enableRotatorZoom(rotator){
     }
   });
 }
-function showLandscapePair(photoIdA, photoIdB){
-  if(!photoIdA || !photoIdB){ toast('두 장의 사진을 먼저 선택해주세요'); return; }
+function showLandscapePhotos(photoIds){
+  const ids = photoIds.filter(Boolean);
+  if(ids.length<2){ toast('비교할 사진을 2장 이상 선택해주세요'); return; }
   removeIfExists('landscapeOverlay');
-  Promise.all([
-    idbGet('photos', photoIdA),
-    idbGet('photos', photoIdB)
-  ]).then(([pA,pB])=>{
+  Promise.all(ids.map(id=>idbGet('photos', id))).then((photosArr)=>{
     const overlay = document.createElement('div');
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
       <div class="landscape-rotator" id="landscapeRotator">
-        <div class="lr-imgbox"><img id="lrImgA" src="${getPhotoUrl(pA)}"></div>
-        <div class="lr-imgbox"><img id="lrImgB" src="${getPhotoUrl(pB)}"></div>
+        ${photosArr.map(p=>`<div class="lr-imgbox"><img src="${getPhotoUrl(p)}"></div>`).join('')}
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
@@ -1339,12 +1366,10 @@ function showLandscapePair(photoIdA, photoIdB){
   });
 }
 function openXCompareLandscape(){
-  if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
-  showLandscapePair(xCmpA.photoId, xCmpB.photoId);
+  showLandscapePhotos(xCmpSlots.map(s=>s? s.photoId : null));
 }
 function openDetailCompareLandscape(){
-  if(!cmpOldPhotoId || !cmpNewPhotoId){ toast('비교할 사진을 먼저 선택해주세요'); return; }
-  showLandscapePair(cmpOldPhotoId, cmpNewPhotoId);
+  showLandscapePhotos(cmpSlots);
 }
 function openXComparePicker(which){
   removeIfExists('xTrialPickModal');
@@ -1414,8 +1439,7 @@ async function openXPhotoPicker(which, trialId){
   attachBackdropDismiss(backdrop);
 }
 function pickXComparePhoto(which, trialId, photoId){
-  const state = {trialId, photoId};
-  if(which==='A') xCmpA = state; else xCmpB = state;
+  xCmpSlots[which] = {trialId, photoId};
   removeIfExists('xPhotoPickModal');
   renderXCompareSide(which);
 }
