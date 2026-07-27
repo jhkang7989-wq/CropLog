@@ -93,6 +93,9 @@
 
   /* ---- 즐겨찾기: 세련된 핀 카드 (컬러 그라데이션 + 리본) ---- */
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
+  .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
+  .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);}
+  .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
   .pin-card{
     flex:0 0 auto;width:130px;border-radius:16px;padding:14px 12px;cursor:pointer;
     position:relative;overflow:hidden;color:#fff;
@@ -294,7 +297,12 @@
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
   .detail-dates{font-size:12.5px;color:var(--ink);font-weight:700;margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 12px;line-height:1.6;}
-  .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 12px;}
+  .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;margin-bottom:8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 12px;}
+  #detailAddressList{margin-top:-8px;}
+  #detailAddressList:empty{margin-top:0;}
+  .addr-input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .addr-input-row input{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;}
+  .addr-remove{white-space:nowrap;color:var(--danger);}
   .detail-address .addr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .detail-address .action{color:var(--muted);padding:4px;}
   .float-btn{
@@ -389,7 +397,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v25 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v27 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -504,8 +512,8 @@
         <input type="text" id="ntReferenceVariety" placeholder="예: 기존 청양고추">
       </div>
       <div class="field">
-        <label>밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="text" id="ntFieldAddress" placeholder="예: 강원 홍천군 서석면 ○○리 123">
+        <label style="display:flex;align-items:center;">밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span> <span class="link" style="margin-left:auto;" onclick="addAddressField('nt')">+ 주소 추가</span></label>
+        <div id="ntAddressList"></div>
       </div>
       <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
     </main>
@@ -524,11 +532,7 @@
     </header>
     <main>
       <div id="detailDates" class="detail-dates hidden"></div>
-      <div id="detailAddress" class="detail-address hidden">
-        <div class="addr-text" id="detailAddressText"></div>
-        <button class="action" onclick="copyFieldAddress()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
-        <button class="action" onclick="openFieldAddressInMaps()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg></button>
-      </div>
+      <div id="detailAddressList"></div>
 
       <div class="tab-row" style="margin-bottom:16px;">
         <div class="tab active" id="detailTabTimeline" onclick="switchDetailTab('timeline')">타임라인</div>
@@ -563,6 +567,14 @@
           <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
           가로로 크게 보기
         </button>
+        <button class="btn btn-dark" style="margin-top:8px;" onclick="saveDetailComparison()">
+          <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h8V4"/></svg>
+          이 비교 저장하기
+        </button>
+        <div id="savedCompareDetail" class="hidden">
+          <div class="section-title" style="margin-top:20px;">저장된 성장비교</div>
+          <div class="saved-cmp-row" id="savedCompareDetailRow"></div>
+        </div>
       </div>
     </main>
   </section>
@@ -646,6 +658,14 @@
         <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
         가로로 크게 보기
       </button>
+      <button class="btn btn-dark" style="margin-top:8px;" onclick="saveXComparison()">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h8V4"/></svg>
+        이 비교 저장하기
+      </button>
+      <div id="savedCompareX" class="hidden">
+        <div class="section-title" style="margin-top:20px;">저장된 품종비교</div>
+        <div class="saved-cmp-row" id="savedCompareXRow"></div>
+      </div>
     </main>
   </section>
 
@@ -678,7 +698,7 @@
 <script>
 /* ================= IndexedDB 레이어 ================= */
 let db;
-const DB_NAME = 'sigyoDB', DB_VER = 2;
+const DB_NAME = 'sigyoDB', DB_VER = 3;
 
 function openDB(){
   return new Promise((resolve, reject)=>{
@@ -690,6 +710,7 @@ function openDB(){
       if(!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', {keyPath:'id'});
       if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', {keyPath:'key'});
       if(!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', {keyPath:'id'});
+      if(!d.objectStoreNames.contains('comparisons')) d.createObjectStore('comparisons', {keyPath:'id'});
     };
     req.onsuccess = (e)=>{ db = e.target.result; resolve(db); };
     req.onerror = (e)=> reject(e);
@@ -710,12 +731,13 @@ function idbDelete(store, key){
 }
 function idbClearAll(){
   return new Promise((res)=>{
-    const t = db.transaction(['crops','trials','photos','meta','notes'],'readwrite');
+    const t = db.transaction(['crops','trials','photos','meta','notes','comparisons'],'readwrite');
     t.objectStore('crops').clear();
     t.objectStore('trials').clear();
     t.objectStore('photos').clear();
     t.objectStore('meta').clear();
     t.objectStore('notes').clear();
+    t.objectStore('comparisons').clear();
     t.oncomplete = ()=>res(true);
   });
 }
@@ -778,7 +800,9 @@ function icon(name, size){
     circleTool: `<svg ${c} ${s}><circle cx="12" cy="12" r="8"/></svg>`,
     arrowTool: `<svg ${c} ${s}><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9,5 19,5 19,15"/></svg>`,
     textTool: `<svg ${c} ${s}><line x1="5" y1="6" x2="19" y2="6"/><line x1="12" y1="6" x2="12" y2="19"/></svg>`,
-    undo: `<svg ${c} ${s}><path d="M4 8h9a5 5 0 0 1 0 10h-2"/><polyline points="8,4 4,8 8,12"/></svg>`
+    undo: `<svg ${c} ${s}><path d="M4 8h9a5 5 0 0 1 0 10h-2"/><polyline points="8,4 4,8 8,12"/></svg>`,
+    copy: `<svg ${c} ${s}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
+    pin: `<svg ${c} ${s}><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>`
   };
   return icons[name] || '';
 }
@@ -814,20 +838,52 @@ function textColorFor(bgHex){
 
 /* ================= 라우팅 ================= */
 let currentTrialId = null;
-let currentFieldAddress = '';
-function copyFieldAddress(){
-  if(!currentFieldAddress){ toast('등록된 주소가 없어요'); return; }
+let currentFieldAddresses = [];
+const MAX_ADDRESSES = 5;
+function addAddressField(prefix, value){
+  const list = document.getElementById(`${prefix}AddressList`);
+  const count = list.children.length;
+  if(count >= MAX_ADDRESSES){ toast(`주소는 최대 ${MAX_ADDRESSES}개까지 등록할 수 있어요`); return; }
+  const idx = count+1;
+  const row = document.createElement('div');
+  row.className = 'addr-input-row';
+  row.innerHTML = `
+    <input type="text" placeholder="밭주소 ${idx}" value="${escapeHtml(value||'')}">
+    ${count>0 ? `<span class="link addr-remove" onclick="this.parentElement.remove(); renumberAddressFields('${prefix}')">삭제</span>` : ''}
+  `;
+  list.appendChild(row);
+}
+function renumberAddressFields(prefix){
+  const list = document.getElementById(`${prefix}AddressList`);
+  Array.from(list.children).forEach((row,i)=>{
+    row.querySelector('input').placeholder = `밭주소 ${i+1}`;
+  });
+}
+function resetAddressFields(prefix, values){
+  const list = document.getElementById(`${prefix}AddressList`);
+  list.innerHTML = '';
+  const vals = (values && values.length) ? values : [''];
+  vals.forEach(v=> addAddressField(prefix, v));
+}
+function getAddressValues(prefix){
+  const list = document.getElementById(`${prefix}AddressList`);
+  return Array.from(list.querySelectorAll('input')).map(i=>i.value.trim()).filter(Boolean);
+}
+function copyFieldAddress(idx){
+  const addr = currentFieldAddresses[idx];
+  if(!addr){ toast('등록된 주소가 없어요'); return; }
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(currentFieldAddress).then(()=>{
+    navigator.clipboard.writeText(addr).then(()=>{
       toast('주소를 복사했어요');
     }).catch(()=>{ toast('복사에 실패했어요'); });
   } else {
     toast('이 브라우저는 복사가 지원되지 않아요');
   }
 }
-function openFieldAddressInMaps(){
-  if(!currentFieldAddress){ toast('등록된 주소가 없어요'); return; }
-  window.location.href = `geo:0,0?q=${encodeURIComponent(currentFieldAddress)}`;
+function openFieldAddressInMaps(idx){
+  const addr = currentFieldAddresses[idx];
+  if(!addr){ toast('등록된 주소가 없어요'); return; }
+  window.location.href = `geo:0,0?q=${encodeURIComponent(addr)}`;
 }
 const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help'];
 const topLevelViews = ['home','xcompare','settings'];
@@ -1170,7 +1226,7 @@ async function renderNewTrialForm(){
   document.getElementById('ntSowDate').value='';
   document.getElementById('ntTransplantDate').value='';
   document.getElementById('ntReferenceVariety').value='';
-  document.getElementById('ntFieldAddress').value='';
+  resetAddressFields('nt');
   document.getElementById('customCropName').value='';
 
   const cat = document.getElementById('colorCatalog');
@@ -1218,7 +1274,7 @@ async function createTrial(){
   const sowDate = document.getElementById('ntSowDate').value;
   const transplantDate = document.getElementById('ntTransplantDate').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
-  const fieldAddress = document.getElementById('ntFieldAddress').value.trim();
+  const fieldAddresses = getAddressValues('nt');
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
 
   let cropId = selectedCropId;
@@ -1232,7 +1288,7 @@ async function createTrial(){
   if(!cropId){ toast('품목을 선택해주세요'); return; }
 
   const id = uid();
-  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, referenceVariety, fieldAddress, createdAt: Date.now()});
+  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: Date.now()});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -1284,8 +1340,8 @@ async function openTrialEditModal(){
         <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 기존 청양고추">
       </div>
       <div class="field">
-        <label>밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="text" id="editTrialFieldAddress" value="${t.fieldAddress||''}" placeholder="예: 강원 홍천군 서석면 ○○리 123">
+        <label style="display:flex;align-items:center;">밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span> <span class="link" style="margin-left:auto;" onclick="addAddressField('editTrial')">+ 주소 추가</span></label>
+        <div id="editTrialAddressList"></div>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="cancelAction(()=>closeModal('trialEditModal'))">취소</button>
@@ -1294,6 +1350,8 @@ async function openTrialEditModal(){
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
+  const existingAddresses = (t.fieldAddresses && t.fieldAddresses.length) ? t.fieldAddresses : (t.fieldAddress ? [t.fieldAddress] : []);
+  resetAddressFields('editTrial', existingAddresses);
 }
 async function saveTrialEdit(){
   const cropId = document.getElementById('editTrialCrop').value;
@@ -1302,10 +1360,11 @@ async function saveTrialEdit(){
   const sowDate = document.getElementById('editTrialSowDate').value;
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
-  const fieldAddress = document.getElementById('editTrialFieldAddress').value.trim();
+  const fieldAddresses = getAddressValues('editTrial');
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddress = fieldAddress;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
+  delete t.fieldAddress;
   await idbPut('trials', t);
   closeModal('trialEditModal');
   toast('수정했어요');
@@ -1354,13 +1413,17 @@ async function renderDetail(trialId){
   const detailDatesEl = document.getElementById('detailDates');
   if(dateParts.length){ detailDatesEl.textContent = dateParts.join(' · '); detailDatesEl.classList.remove('hidden'); }
   else { detailDatesEl.classList.add('hidden'); }
-  currentFieldAddress = t.fieldAddress || '';
-  const addrEl = document.getElementById('detailAddress');
-  if(currentFieldAddress){
-    document.getElementById('detailAddressText').textContent = currentFieldAddress;
-    addrEl.classList.remove('hidden');
+  currentFieldAddresses = (t.fieldAddresses && t.fieldAddresses.length) ? t.fieldAddresses : (t.fieldAddress ? [t.fieldAddress] : []);
+  const addrListEl = document.getElementById('detailAddressList');
+  if(currentFieldAddresses.length){
+    addrListEl.innerHTML = currentFieldAddresses.map((addr,i)=>`
+      <div class="detail-address">
+        <div class="addr-text">${currentFieldAddresses.length>1?`밭주소 ${i+1} : `:''}${escapeHtml(addr)}</div>
+        <button class="action" onclick="copyFieldAddress(${i})">${icon('copy',17)}</button>
+        <button class="action" onclick="openFieldAddressInMaps(${i})">${icon('pin',17)}</button>
+      </div>`).join('');
   } else {
-    addrEl.classList.add('hidden');
+    addrListEl.innerHTML = '';
   }
   const favMeta = (await idbGet('meta','favorites'))?.value || [];
   document.getElementById('favBtn').innerHTML = favMeta.includes(trialId) ? icon('starFilled',17) : icon('star',17);
@@ -1395,6 +1458,7 @@ async function renderDetail(trialId){
   initTimelineDelegation();
 
   await renderNotes(trialId);
+  await renderSavedComparisons('detail', trialId);
 }
 function renderCompareCountTabs(){
   [2,3,4].forEach(n=>{
@@ -1466,6 +1530,7 @@ function renderXCompare(){
   [2,3,4].forEach(n=>{
     document.getElementById(`xCmpCount${n}`).classList.toggle('active', xCmpSlots.length===n);
   });
+  renderSavedComparisons('xcompare');
 }
 function setXCompareCount(n){
   const cur = xCmpSlots.length;
@@ -1577,6 +1642,121 @@ function openXCompareLandscape(){
 function openDetailCompareLandscape(){
   showLandscapePhotos(cmpSlots);
 }
+
+/* ================= 비교 저장 (성장비교/품종비교 공용) ================= */
+function buildComparisonCanvas({photoInfos, sharedHeader}){
+  return new Promise(async (resolve)=>{
+    const n = photoInfos.length;
+    const gap = 14, W = 900;
+    const cellW = Math.floor((W - gap*(n+1))/n), cellH = cellW;
+    const headerH = sharedHeader.length ? (40 + (sharedHeader.length-1)*24 + 20) : 20;
+    const maxLines = Math.max(...photoInfos.map(p=>p.lines.length), 1);
+    const capH = 14 + maxLines*17;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = headerH + cellH + capH + 16;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    let hy = 34;
+    sharedHeader.forEach((line,i)=>{
+      ctx.fillStyle = i===0 ? '#3c3226' : '#8a8275';
+      ctx.font = i===0 ? 'bold 24px sans-serif' : '15px sans-serif';
+      ctx.fillText(line, 20, hy);
+      hy += 26;
+    });
+    for(let i=0;i<n;i++){
+      const x = gap + i*(cellW+gap);
+      const y = headerH;
+      await new Promise(res=>{
+        const img = new Image();
+        img.onload=()=>{ ctx.drawImage(img, x, y, cellW, cellH); res(); };
+        img.src = URL.createObjectURL(photoInfos[i].blob);
+      });
+      let ly = y+cellH+18;
+      ctx.fillStyle = '#8a8275'; ctx.font='13px sans-serif';
+      photoInfos[i].lines.forEach(line=>{ ctx.fillText(line, x, ly); ly+=17; });
+    }
+    canvas.toBlob(b=>resolve(b), 'image/png');
+  });
+}
+async function saveDetailComparison(){
+  const ids = cmpSlots.filter(Boolean);
+  if(ids.length<2){ toast('비교할 사진을 2장 이상 선택해주세요'); return; }
+  const t = await idbGet('trials', currentTrialId);
+  const c = await idbGet('crops', t.cropId);
+  const photoRecords = await Promise.all(ids.map(id=>idbGet('photos', id)));
+  const sharedHeader = [`${c.name} · ${t.seg} · ${t.name}`];
+  const dateBits = buildDateBitsLine(t);
+  if(dateBits) sharedHeader.push(dateBits);
+  const photoInfos = photoRecords.map(p=>({ blob:p.blob, lines:[p.date] }));
+  const blob = await buildComparisonCanvas({photoInfos, sharedHeader});
+  await idbPut('comparisons', {id:uid(), scope:'detail', trialId: currentTrialId, blob, createdAt: Date.now()});
+  toast('비교를 저장했어요');
+  renderSavedComparisons('detail', currentTrialId);
+}
+async function saveXComparison(){
+  const slots = xCmpSlots.filter(Boolean);
+  if(slots.length<2){ toast('비교할 시교를 2개 이상 선택해주세요'); return; }
+  const photoInfos = [];
+  for(const s of slots){
+    const [t,p] = await Promise.all([idbGet('trials', s.trialId), idbGet('photos', s.photoId)]);
+    if(!t || !p) continue;
+    const c = await idbGet('crops', t.cropId);
+    photoInfos.push({ blob: p.blob, lines: buildTrialLabelLines(c,t,p) });
+  }
+  if(photoInfos.length<2){ toast('비교할 사진이 부족해요'); return; }
+  const blob = await buildComparisonCanvas({photoInfos, sharedHeader: []});
+  await idbPut('comparisons', {id:uid(), scope:'xcompare', trialId:null, blob, createdAt: Date.now()});
+  toast('비교를 저장했어요');
+  renderSavedComparisons('xcompare');
+}
+async function renderSavedComparisons(scope, trialId){
+  const all = await idbGetAll('comparisons');
+  const filtered = all.filter(c=> c.scope===scope && (scope!=='detail' || c.trialId===trialId)).sort((a,b)=>b.createdAt-a.createdAt);
+  const containerId = scope==='detail' ? 'savedCompareDetail' : 'savedCompareX';
+  const rowId = scope==='detail' ? 'savedCompareDetailRow' : 'savedCompareXRow';
+  const container = document.getElementById(containerId);
+  const row = document.getElementById(rowId);
+  if(!container || !row) return;
+  if(filtered.length===0){ container.classList.add('hidden'); row.innerHTML=''; return; }
+  container.classList.remove('hidden');
+  row.innerHTML = filtered.map(c=>`<div class="saved-cmp-thumb" onclick="viewSavedComparison('${c.id}')"><img src="${getPhotoUrl(c)}"></div>`).join('');
+}
+async function viewSavedComparison(id){
+  const c = await idbGet('comparisons', id);
+  if(!c) return;
+  removeIfExists('savedCmpViewer');
+  const overlay = document.createElement('div');
+  overlay.className = 'landscape-overlay'; overlay.id='savedCmpViewer';
+  overlay.style.flexDirection = 'column';
+  overlay.innerHTML = `
+    <div style="position:absolute;top:10px;right:10px;z-index:2;color:#fff;" onclick="removeIfExists('savedCmpViewer')">${icon('close',20)}</div>
+    <img src="${getPhotoUrl(c)}" style="max-width:94%;max-height:78%;object-fit:contain;border-radius:8px;">
+    <div class="lb-actions" style="position:absolute;bottom:0;left:0;right:0;">
+      <a class="a primary" onclick="shareSavedComparison('${id}')">공유</a>
+      <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteSavedComparison('${id}','${c.scope}','${c.trialId||''}')">삭제</a>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
+}
+async function shareSavedComparison(id){
+  const c = await idbGet('comparisons', id);
+  if(!c) return;
+  const file = new File([c.blob], 'comparison.png', {type:'image/png'});
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:'비교 이미지'}); }catch(e){}
+  } else {
+    toast('이 브라우저는 공유가 지원되지 않아요. 이미지를 길게 눌러 저장해보세요.');
+  }
+}
+async function deleteSavedComparison(id, scope, trialId){
+  const ok = await showConfirm({title:'비교 삭제', message:'저장된 비교를 삭제할까요?', confirmLabel:'삭제', danger:true});
+  if(!ok) return;
+  await idbDelete('comparisons', id);
+  removeIfExists('savedCmpViewer');
+  toast('삭제했어요');
+  renderSavedComparisons(scope, trialId||null);
+}
+
 function openXComparePicker(which){
   removeIfExists('xTrialPickModal');
   const backdrop = document.createElement('div');
@@ -2181,12 +2361,8 @@ async function renderReport(trialId){
   reportPhotosCache = photos;
   window._reportMeta = {t, c};
 
-  // 기본 선택: 처음 진입 시 최대 3장(처음/중간/마지막) 자동 선택
+  // 처음 진입 시 아무 사진도 선택돼있지 않은 상태로 시작 (전체선택 버튼으로 직접 고름)
   selectedReportIds = new Set();
-  if(photos.length){
-    const idxs = photos.length<=3 ? photos.map((_,i)=>i) : [0, Math.floor(photos.length/2), photos.length-1];
-    idxs.forEach(i=> selectedReportIds.add(photos[i].id));
-  }
   reportMode = 'individual';
   document.getElementById('modeIndividual').classList.add('active');
   document.getElementById('modeCollage').classList.remove('active');
@@ -2254,12 +2430,20 @@ function setReportMode(mode){
 function getSelectedPhotos(){
   return reportPhotosCache.filter(p=>selectedReportIds.has(p.id)).sort((a,b)=>a.date.localeCompare(b.date));
 }
+function buildDateBitsLine(t){
+  const bits = [];
+  if(t.sowDate) bits.push(`파종일 ${t.sowDate}`);
+  if(t.transplantDate) bits.push(`정식일 ${t.transplantDate}`);
+  return bits.join(' · ');
+}
 function renderCollagePreview(){
   const {t,c} = window._reportMeta;
   const sel = getSelectedPhotos();
+  const dateBits = buildDateBitsLine(t);
   document.getElementById('reportPreviewCard').innerHTML = `
     <div class="report-head">${t.name} 생육 리포트</div>
     <div class="report-sub">${c.name} · ${t.seg} · ${sel[0]?.date||'-'}~${sel[sel.length-1]?.date||'-'}</div>
+    ${dateBits ? `<div class="report-sub">${dateBits}</div>` : ''}
     <div class="report-row" style="flex-wrap:wrap;">
       ${sel.map(p=>`<div class="cell" style="flex:0 0 30%;"><img src="${getPhotoUrl(p)}"><div class="cap">${p.date}</div></div>`).join('') || '<p class="empty">선택된 사진이 없어요.</p>'}
     </div>`;
@@ -2271,7 +2455,8 @@ async function buildReportCanvas(){
   const n = Math.max(sel.length,1);
   const cols = Math.min(4, Math.ceil(Math.sqrt(n)));
   const rows = Math.ceil(n/cols);
-  const W = 900, gap=14, headerH=90;
+  const dateBits = buildDateBitsLine(t);
+  const W = 900, gap=14, headerH= dateBits ? 116 : 90;
   const cellW = Math.floor((W - gap*(cols+1))/cols), cellH = cellW;
   canvas.width = W; canvas.height = headerH + rows*(cellH+34) + 20;
   const ctx = canvas.getContext('2d');
@@ -2280,6 +2465,7 @@ async function buildReportCanvas(){
   ctx.fillText(`${t.name} 생육 리포트`, 20, 38);
   ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
   ctx.fillText(`${c.name} · ${t.seg}`, 20, 66);
+  if(dateBits){ ctx.fillText(dateBits, 20, 92); }
 
   for(let i=0;i<sel.length;i++){
     const p = sel[i];
@@ -2435,8 +2621,8 @@ async function performBackup(silent){
   try{
     setStatus('백업 준비 중...');
     const token = await getValidToken();
-    const [crops, trials, photos, notes, metaAll] = await Promise.all([
-      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta')
+    const [crops, trials, photos, notes, metaAll, comparisons] = await Promise.all([
+      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons')
     ]);
     const photosOut = [];
     for(let i=0;i<photos.length;i++){
@@ -2445,7 +2631,12 @@ async function performBackup(silent){
       const b64 = await blobToBase64(p.blob);
       photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
     }
-    const backup = { version:1, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut };
+    const comparisonsOut = [];
+    for(const c of comparisons){
+      const b64 = await blobToBase64(c.blob);
+      comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
+    }
+    const backup = { version:2, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut };
     const json = JSON.stringify(backup);
 
     setStatus('업로드 중...');
@@ -2528,6 +2719,10 @@ async function restoreFromDrive(){
       const blob = base64ToBlob(p.data, p.mime);
       await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
     }
+    for(const c of backup.comparisons||[]){
+      const blob = base64ToBlob(c.data, c.mime);
+      await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
+    }
     await loadSettings();
     statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
     toast('복원 완료했어요');
@@ -2550,7 +2745,7 @@ async function exportCSV(){
     const c = cropMap[t.cropId] || {name:''};
     return [
       c.name||'', t.seg||'', t.name||'', t.sowDate||'', t.transplantDate||'',
-      t.referenceVariety||'', t.fieldAddress||'', String(photoCount[t.id]||0),
+      t.referenceVariety||'', (t.fieldAddresses||(t.fieldAddress?[t.fieldAddress]:[])).join('; '), String(photoCount[t.id]||0),
       new Date(t.createdAt).toLocaleDateString('ko-KR')
     ];
   });
