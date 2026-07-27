@@ -310,12 +310,12 @@
       <span style="width:24px;"></span>
     </header>
     <main>
-      <div class="section-title" style="margin-top:0;">알림 피드백</div>
+      <div class="section-title" style="margin-top:0;">진동 피드백</div>
       <div class="toggle-row">
-        <div class="label">저장 · 삭제 · 등록 시 알림 표시</div>
+        <div class="label">저장 · 삭제 · 등록 시 진동 표시</div>
         <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
       </div>
-      <button class="btn btn-ghost" style="margin-bottom:22px;" onclick="rawToast('피드백 테스트입니다')">테스트 알림 보내기</button>
+      <button class="btn btn-ghost" style="margin-bottom:22px;" onclick="rawToast('진동 피드백 테스트입니다')">진동 테스트해보기</button>
 
       <div class="section-title">구글 동기화</div>
       <div class="toggle-row">
@@ -340,10 +340,10 @@
       </div>
 
       <div class="settings-group">
-        <div class="settings-row" onclick="go('crops')"><span>품목 관리</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v14 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v15 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -351,7 +351,7 @@
   <section id="view-crops" class="hidden">
     <header class="topbar">
       <button class="back" onclick="go('settings')">‹ 설정</button>
-      <h1>품목 관리</h1>
+      <h1>품목 Color Tag 설정</h1>
       <span style="width:24px;"></span>
     </header>
     <main>
@@ -428,6 +428,10 @@
         <div class="compare-labels" id="cmpLabels"><span>-</span><span>-</span></div>
         <div class="compare-hint">사진을 탭해서 비교할 날짜를 바꿀 수 있어요</div>
       </div>
+      <button class="btn btn-ghost" style="margin-bottom:18px;" onclick="openDetailCompareLandscape()">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        가로로 크게 보기
+      </button>
 
       <div class="section-title">촬영 타임라인</div>
       <div id="timelineAll"></div>
@@ -480,7 +484,10 @@
       <span style="width:24px;"></span>
     </header>
     <main>
-      <div class="section-title">공유할 사진 선택 <span class="link" id="reportSelCount">0장 선택</span></div>
+      <div class="section-title">공유할 사진 선택
+        <span class="link" id="reportSelectAllBtn" onclick="toggleSelectAllReportPhotos()">전체선택</span>
+        <span class="link" id="reportSelCount" style="margin-left:0;">0장 선택</span>
+      </div>
       <div id="reportPhotoPicker"></div>
 
       <div class="section-title" style="margin-top:18px;">전송 방식</div>
@@ -608,6 +615,13 @@ function idbDeleteWhere(store, predicate){
   });
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+const photoUrlCache = new Map();
+function getPhotoUrl(p){
+  if(!photoUrlCache.has(p.id)){
+    photoUrlCache.set(p.id, URL.createObjectURL(p.blob));
+  }
+  return photoUrlCache.get(p.id);
+}
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function timeAgo(ts){
   const diffMs = Date.now()-ts;
@@ -865,7 +879,7 @@ async function toggleFeedbackSetting(){
   appSettings.feedback = !appSettings.feedback;
   document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
   await saveSettings();
-  rawToast(appSettings.feedback ? '알림 피드백을 켰어요' : '알림 피드백을 껐어요');
+  rawToast(appSettings.feedback ? '진동 피드백을 켰어요' : '진동 피드백을 껐어요');
 }
 
 /* ================= 공용 모달 (확인/알림) ================= */
@@ -1171,7 +1185,7 @@ async function renderDetail(trialId){
       <div class="date-group">
         <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
-          ${grouped[d].map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('')}
+          ${grouped[d].map(p=>`<div class="photo-thumb" onclick="openLightbox('${p.id}')"><img src="${getPhotoUrl(p)}"></div>`).join('')}
         </div>
       </div>`).join('');
   }
@@ -1181,8 +1195,8 @@ async function renderDetail(trialId){
 function renderCompare(){
   const oldP = allPhotosCache.find(p=>p.id===cmpOldPhotoId);
   const newP = allPhotosCache.find(p=>p.id===cmpNewPhotoId);
-  document.getElementById('cmpOldImg').innerHTML = oldP? `<img src="${URL.createObjectURL(oldP.blob)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
-  document.getElementById('cmpNewImg').innerHTML = newP? `<img src="${URL.createObjectURL(newP.blob)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
+  document.getElementById('cmpOldImg').innerHTML = oldP? `<img src="${getPhotoUrl(oldP)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
+  document.getElementById('cmpNewImg').innerHTML = newP? `<img src="${getPhotoUrl(newP)}">`:'<div class="cmp-placeholder">탭해서<br>사진 선택</div>';
   document.getElementById('cmpLabels').innerHTML = `<span>${oldP? oldP.date:'-'}</span><span>${newP? newP.date:'-'}</span>`;
 }
 function openComparePicker(which){
@@ -1195,14 +1209,11 @@ function openComparePicker(which){
   backdrop.innerHTML = `
     <div class="modal-sheet" style="max-height:75vh;">
       <h3>비교할 사진 선택</h3>
-      <div class="photo-grid" style="margin-bottom:14px;">
-        <div class="photo-thumb add-thumb" onclick="closeModal('comparePickModal'); go('upload', currentTrialId)">${icon('plus',22)}</div>
-      </div>
-      ${dateKeys.length===0 ? '<p class="empty">등록된 사진이 없어요. 위에서 새로 추가해보세요.</p>' : dateKeys.map(d=>`
+      ${dateKeys.length===0 ? '<p class="empty">등록된 사진이 없어요. 먼저 사진을 등록해주세요.</p>' : dateKeys.map(d=>`
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
-            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto('${which}','${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('')}
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto('${which}','${p.id}')"><img src="${getPhotoUrl(p)}"></div>`).join('')}
           </div>
         </div>`).join('')}
     </div>`;
@@ -1242,7 +1253,7 @@ async function renderXCompareSide(which){
   const [t, p] = await Promise.all([idbGet('trials', state.trialId), idbGet('photos', state.photoId)]);
   if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.innerHTML = '탭해서<br>시교 선택'; return; }
   const c = await idbGet('crops', t.cropId);
-  imgEl.innerHTML = `<img src="${URL.createObjectURL(p.blob)}">`;
+  imgEl.innerHTML = `<img src="${getPhotoUrl(p)}">`;
   const lines = buildTrialLabelLines(c, t, p);
   labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${lines[0]}</b>` + lines.slice(1).map(l=>`<br>${l}`).join('');
 }
@@ -1302,24 +1313,32 @@ function enableRotatorZoom(rotator){
     }
   });
 }
-function openXCompareLandscape(){
-  if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
+function showLandscapePair(photoIdA, photoIdB){
+  if(!photoIdA || !photoIdB){ toast('두 장의 사진을 먼저 선택해주세요'); return; }
   removeIfExists('landscapeOverlay');
   Promise.all([
-    idbGet('photos', xCmpA.photoId),
-    idbGet('photos', xCmpB.photoId)
+    idbGet('photos', photoIdA),
+    idbGet('photos', photoIdB)
   ]).then(([pA,pB])=>{
     const overlay = document.createElement('div');
     overlay.className = 'landscape-overlay'; overlay.id = 'landscapeOverlay';
     overlay.innerHTML = `
       <div class="landscape-rotator" id="landscapeRotator">
-        <div class="lr-imgbox"><img id="lrImgA" src="${URL.createObjectURL(pA.blob)}"></div>
-        <div class="lr-imgbox"><img id="lrImgB" src="${URL.createObjectURL(pB.blob)}"></div>
+        <div class="lr-imgbox"><img id="lrImgA" src="${getPhotoUrl(pA)}"></div>
+        <div class="lr-imgbox"><img id="lrImgB" src="${getPhotoUrl(pB)}"></div>
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
     enableRotatorZoom(document.getElementById('landscapeRotator'));
   });
+}
+function openXCompareLandscape(){
+  if(!xCmpA || !xCmpB){ toast('두 시교를 먼저 선택해주세요'); return; }
+  showLandscapePair(xCmpA.photoId, xCmpB.photoId);
+}
+function openDetailCompareLandscape(){
+  if(!cmpOldPhotoId || !cmpNewPhotoId){ toast('비교할 사진을 먼저 선택해주세요'); return; }
+  showLandscapePair(cmpOldPhotoId, cmpNewPhotoId);
 }
 function openXComparePicker(which){
   removeIfExists('xTrialPickModal');
@@ -1381,7 +1400,7 @@ async function openXPhotoPicker(which, trialId){
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
-            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickXComparePhoto('${which}','${trialId}','${p.id}')"><img src="${URL.createObjectURL(p.blob)}"></div>`).join('')}
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickXComparePhoto('${which}','${trialId}','${p.id}')"><img src="${getPhotoUrl(p)}"></div>`).join('')}
           </div>
         </div>`).join('')}
     </div>`;
@@ -1594,20 +1613,42 @@ function renderReportPicker(){
         <div class="date-head">${d}</div>
         <div class="photo-grid">
           ${grouped[d].map(p=>`
-            <div class="photo-thumb ${selectedReportIds.has(p.id)?'selected':''}" onclick="toggleReportPhoto('${p.id}')">
-              <img src="${URL.createObjectURL(p.blob)}">
+            <div class="photo-thumb ${selectedReportIds.has(p.id)?'selected':''}" id="rpThumb-${p.id}" onclick="toggleReportPhoto('${p.id}')">
+              <img src="${getPhotoUrl(p)}">
               <div class="chk">${icon('check',12)}</div>
             </div>`).join('')}
         </div>
       </div>`).join('');
   }
-  document.getElementById('reportSelCount').textContent = `${selectedReportIds.size}장 선택`;
+  updateReportSelectionUI();
   if(reportMode==='collage') renderCollagePreview();
+}
+function updateReportSelectionUI(){
+  document.getElementById('reportSelCount').textContent = `${selectedReportIds.size}장 선택`;
+  const allSelected = reportPhotosCache.length>0 && selectedReportIds.size===reportPhotosCache.length;
+  document.getElementById('reportSelectAllBtn').textContent = allSelected ? '전체해제' : '전체선택';
 }
 function toggleReportPhoto(photoId){
   if(selectedReportIds.has(photoId)) selectedReportIds.delete(photoId);
   else selectedReportIds.add(photoId);
-  renderReportPicker();
+  const thumb = document.getElementById(`rpThumb-${photoId}`);
+  if(thumb) thumb.classList.toggle('selected', selectedReportIds.has(photoId));
+  updateReportSelectionUI();
+  if(reportMode==='collage') renderCollagePreview();
+}
+function toggleSelectAllReportPhotos(){
+  const allSelected = reportPhotosCache.length>0 && selectedReportIds.size===reportPhotosCache.length;
+  if(allSelected){
+    selectedReportIds.clear();
+  } else {
+    reportPhotosCache.forEach(p=> selectedReportIds.add(p.id));
+  }
+  reportPhotosCache.forEach(p=>{
+    const thumb = document.getElementById(`rpThumb-${p.id}`);
+    if(thumb) thumb.classList.toggle('selected', selectedReportIds.has(p.id));
+  });
+  updateReportSelectionUI();
+  if(reportMode==='collage') renderCollagePreview();
 }
 function setReportMode(mode){
   reportMode = mode;
@@ -1626,7 +1667,7 @@ function renderCollagePreview(){
     <div class="report-head">${t.name} 생육 리포트</div>
     <div class="report-sub">${c.name} · ${t.seg} · ${sel[0]?.date||'-'}~${sel[sel.length-1]?.date||'-'}</div>
     <div class="report-row" style="flex-wrap:wrap;">
-      ${sel.map(p=>`<div class="cell" style="flex:0 0 30%;"><img src="${URL.createObjectURL(p.blob)}"><div class="cap">${p.date}</div></div>`).join('') || '<p class="empty">선택된 사진이 없어요.</p>'}
+      ${sel.map(p=>`<div class="cell" style="flex:0 0 30%;"><img src="${getPhotoUrl(p)}"><div class="cap">${p.date}</div></div>`).join('') || '<p class="empty">선택된 사진이 없어요.</p>'}
     </div>`;
 }
 async function buildReportCanvas(){
