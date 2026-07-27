@@ -397,7 +397,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v27 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v28 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -2664,7 +2664,7 @@ async function performBackup(silent){
   }catch(e){
     console.error(e);
     setStatus('');
-    if(!silent) toast('백업에 실패했어요. 다시 시도해주세요.');
+    if(!silent) toast(`백업에 실패했어요: ${e.message || e}`);
     return false;
   }
 }
@@ -2708,6 +2708,7 @@ async function restoreFromDrive(){
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers:{ Authorization:'Bearer '+token }
     });
+    if(!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
     const backup = await res.json();
     statusEl.textContent = '복원 중...';
     await idbClearAll();
@@ -2730,7 +2731,7 @@ async function restoreFromDrive(){
   }catch(e){
     console.error(e);
     statusEl.textContent = '';
-    toast('복원에 실패했어요');
+    toast(`복원에 실패했어요: ${e.message || e}`);
   }
 }
 
