@@ -95,6 +95,25 @@
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .cal-title{font-size:15px;font-weight:800;color:var(--soil);}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0 0;font-size:12px;color:var(--ink);cursor:pointer;position:relative;background:var(--paper);border:1px solid var(--line);}
+  .cal-day.other-month{background:transparent;border-color:transparent;color:var(--line);}
+  .cal-day.today{border:2px solid var(--ink);font-weight:800;}
+  .cal-day .cal-dots{display:flex;gap:2px;margin-top:3px;}
+  .cal-day .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--ink);}
+  .cal-day .cal-dot.done{background:var(--muted);}
+  .cal-day .cal-badge{margin-top:2px;font-size:9px;background:var(--ink);color:#fff;border-radius:8px;padding:0 4px;}
+  .sched-item{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
+  .sched-item .sched-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:transparent;cursor:pointer;margin-top:1px;}
+  .sched-item.done .sched-check{background:var(--muted);border-color:var(--muted);color:#fff;}
+  .sched-item .sched-body{flex:1;min-width:0;}
+  .sched-item .sched-title{font-size:13px;font-weight:700;}
+  .sched-item.done .sched-title{color:var(--muted);text-decoration:line-through;}
+  .sched-item .sched-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .sched-item .sched-actions{display:flex;gap:6px;flex:0 0 auto;}
   .scv-wrap{flex:1;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
   .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:8px;}
   .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
@@ -393,6 +412,10 @@
         <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
       </div>
       <button class="btn btn-ghost" style="margin-bottom:14px;" onclick="rawToast('진동 피드백 테스트입니다')">진동 테스트해보기</button>
+      <div class="toggle-row">
+        <div class="label">오늘 방문 예정 일정 알림</div>
+        <div class="switch on" id="scheduleReminderSwitch" onclick="toggleScheduleReminderSetting()"><div class="knob"></div></div>
+      </div>
       <div class="settings-group">
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="go('help')"><span>사용법 보기</span><span class="chev">›</span></div>
@@ -401,7 +424,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v33 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v34 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -685,6 +708,31 @@
     </main>
   </section>
 
+  <!-- ===== 작황조사 캘린더 ===== -->
+  <section id="view-calendar" class="hidden">
+    <header class="topbar">
+      <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 캘린더</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="cal-header">
+        <button class="action" onclick="calShiftMonth(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,4 7,12 15,20"/></svg></button>
+        <div class="cal-title" id="calTitle">2026년 7월</div>
+        <button class="action" onclick="calShiftMonth(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,4 17,12 9,20"/></svg></button>
+      </div>
+      <div style="text-align:center;margin-bottom:12px;">
+        <span class="link" onclick="calGoToday()" style="margin-left:0;">오늘로 이동</span>
+      </div>
+      <div class="cal-weekdays">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="section-title" style="margin-top:20px;">다가오는 일정</div>
+      <div id="calUpcoming"></div>
+    </main>
+    <button class="fab" onclick="openScheduleModal(todayStr())">+</button>
+  </section>
+
 </div>
 
 <nav class="bottom-tabbar" id="bottomTabbar">
@@ -695,6 +743,10 @@
   <div class="tabbar-item" id="tabXCompare" onclick="go('xcompare')">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>
     <div>비교</div>
+  </div>
+  <div class="tabbar-item" id="tabCalendar" onclick="go('calendar')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+    <div>캘린더</div>
   </div>
   <div class="tabbar-item" id="tabSettings" onclick="go('settings')">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg>
@@ -714,7 +766,7 @@
 <script>
 /* ================= IndexedDB 레이어 ================= */
 let db;
-const DB_NAME = 'sigyoDB', DB_VER = 4;
+const DB_NAME = 'sigyoDB', DB_VER = 5;
 
 function openDB(){
   return new Promise((resolve, reject)=>{
@@ -740,6 +792,13 @@ function openDB(){
       }
       if(!notesStore.indexNames.contains('trialId')) notesStore.createIndex('trialId', 'trialId', {unique:false});
       if(!d.objectStoreNames.contains('comparisons')) d.createObjectStore('comparisons', {keyPath:'id'});
+      let schedulesStore;
+      if(!d.objectStoreNames.contains('schedules')){
+        schedulesStore = d.createObjectStore('schedules', {keyPath:'id'});
+      } else {
+        schedulesStore = upgradeTx.objectStore('schedules');
+      }
+      if(!schedulesStore.indexNames.contains('date')) schedulesStore.createIndex('date', 'date', {unique:false});
     };
     req.onsuccess = (e)=>{ db = e.target.result; resolve(db); };
     req.onerror = (e)=> reject(e);
@@ -749,6 +808,13 @@ function tx(store, mode='readonly'){ return db.transaction(store, mode).objectSt
 function idbGetAllByIndex(store, indexName, value){
   return new Promise((res)=>{
     const req = tx(store).index(indexName).getAll(value);
+    req.onsuccess = ()=> res(req.result||[]);
+    req.onerror = ()=> res([]);
+  });
+}
+function idbGetAllByRange(store, indexName, range){
+  return new Promise((res)=>{
+    const req = tx(store).index(indexName).getAll(range);
     req.onsuccess = ()=> res(req.result||[]);
     req.onerror = ()=> res([]);
   });
@@ -767,13 +833,14 @@ function idbDelete(store, key){
 }
 function idbClearAll(){
   return new Promise((res)=>{
-    const t = db.transaction(['crops','trials','photos','meta','notes','comparisons'],'readwrite');
+    const t = db.transaction(['crops','trials','photos','meta','notes','comparisons','schedules'],'readwrite');
     t.objectStore('crops').clear();
     t.objectStore('trials').clear();
     t.objectStore('photos').clear();
     t.objectStore('meta').clear();
     t.objectStore('notes').clear();
     t.objectStore('comparisons').clear();
+    t.objectStore('schedules').clear();
     t.oncomplete = ()=>res(true);
   });
 }
@@ -921,8 +988,8 @@ function openFieldAddressInMaps(idx){
   if(!addr){ toast('등록된 주소가 없어요'); return; }
   window.location.href = `geo:0,0?q=${encodeURIComponent(addr)}`;
 }
-const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help'];
-const topLevelViews = ['home','xcompare','settings'];
+const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar'];
+const topLevelViews = ['home','xcompare','settings','calendar'];
 let navStack = [];
 async function go(view, arg, fromPopstate){
   views.forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
@@ -931,6 +998,7 @@ async function go(view, arg, fromPopstate){
   if(view==='crops'){ await renderCrops(); }
   if(view==='settings'){
     document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
+    document.getElementById('scheduleReminderSwitch').classList.toggle('on', appSettings.scheduleReminders);
     document.getElementById('syncEnableSwitch').classList.toggle('on', !!appSettings.syncEnabled);
     document.getElementById('syncPanel').classList.toggle('hidden', !appSettings.syncEnabled);
     const lastMeta = await idbGet('meta','lastBackupAt');
@@ -945,11 +1013,13 @@ async function go(view, arg, fromPopstate){
   if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
   if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
   if(view==='xcompare'){ renderXCompare(); }
+  if(view==='calendar'){ await renderCalendar(); }
 
   const tabbar = document.getElementById('bottomTabbar');
   tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
   document.getElementById('tabHome').classList.toggle('active', view==='home');
   document.getElementById('tabXCompare').classList.toggle('active', view==='xcompare');
+  document.getElementById('tabCalendar').classList.toggle('active', view==='calendar');
   document.getElementById('tabSettings').classList.toggle('active', view==='settings');
 
   window.scrollTo(0,0);
@@ -994,7 +1064,7 @@ window.addEventListener('popstate', ()=>{
     history.pushState({navIndex:0}, '');
   }
 });
-let appSettings = {feedback:true, syncEnabled:false};
+let appSettings = {feedback:true, syncEnabled:false, scheduleReminders:true};
 async function loadSettings(){
   const s = await idbGet('meta','settings');
   if(s && s.value) appSettings = Object.assign(appSettings, s.value);
@@ -1116,6 +1186,12 @@ async function toggleFeedbackSetting(){
   document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
   await saveSettings();
   rawToast(appSettings.feedback ? '진동 피드백을 켰어요' : '진동 피드백을 껐어요');
+}
+async function toggleScheduleReminderSetting(){
+  appSettings.scheduleReminders = !appSettings.scheduleReminders;
+  document.getElementById('scheduleReminderSwitch').classList.toggle('on', appSettings.scheduleReminders);
+  await saveSettings();
+  toast(appSettings.scheduleReminders ? '일정 알림을 켰어요' : '일정 알림을 껐어요');
 }
 
 /* ================= 공용 모달 (확인/알림) ================= */
@@ -1623,6 +1699,214 @@ function resetXCompare(){
   renderXCompare();
   toast('비교를 초기화했어요');
 }
+
+/* ================= 작황조사 캘린더 ================= */
+let calYear = null, calMonth = null;
+let scheduleSelectedTrialId = null;
+function pad2(n){ return String(n).padStart(2,'0'); }
+function ymd(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
+
+async function renderCalendar(){
+  if(calYear===null){ const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth(); }
+  await renderCalGrid();
+  await renderCalUpcoming();
+}
+function calShiftMonth(delta){
+  calMonth += delta;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderCalGrid(); renderCalUpcoming();
+}
+function calGoToday(){
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCalGrid(); renderCalUpcoming();
+}
+async function renderCalGrid(){
+  document.getElementById('calTitle').textContent = `${calYear}년 ${calMonth+1}월`;
+  const firstWeekday = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const monthStart = ymd(calYear, calMonth, 1);
+  const monthEnd = ymd(calYear, calMonth, daysInMonth);
+  const schedules = await idbGetAllByRange('schedules', 'date', IDBKeyRange.bound(monthStart, monthEnd));
+  const byDate = {};
+  schedules.forEach(s=>{ (byDate[s.date]=byDate[s.date]||[]).push(s); });
+  const today = todayStr();
+
+  let cells = '';
+  for(let i=0;i<firstWeekday;i++) cells += `<div class="cal-day other-month"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = ymd(calYear, calMonth, d);
+    const list = byDate[dateStr]||[];
+    let mark = '';
+    if(list.length){
+      if(list.length<=3) mark = `<div class="cal-dots">${list.map(s=>`<div class="cal-dot ${s.status==='done'?'done':''}"></div>`).join('')}</div>`;
+      else mark = `<div class="cal-badge">${list.length}</div>`;
+    }
+    cells += `<div class="cal-day ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')">${d}${mark}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = cells;
+}
+async function renderCalUpcoming(){
+  const today = todayStr();
+  const all = (await idbGetAllByRange('schedules', 'date', IDBKeyRange.lowerBound(today)))
+    .filter(s=>s.status!=='done')
+    .sort((a,b)=> a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
+  const upcoming = all.slice(0,8);
+  const el = document.getElementById('calUpcoming');
+  if(upcoming.length===0){ el.innerHTML = '<p class="empty">예정된 일정이 없어요.</p>'; return; }
+  el.innerHTML = upcoming.map(s=>`
+    <div class="sched-item" onclick="openDayModal('${s.date}')">
+      <div class="sched-check" onclick="event.stopPropagation(); toggleScheduleDone('${s.id}')">${icon('check',12)}</div>
+      <div class="sched-body">
+        <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
+        <div class="sched-sub">${s.date}${s.time? ' '+s.time:''}${s.purpose? ' · '+escapeHtml(s.purpose):''}</div>
+      </div>
+    </div>`).join('');
+}
+async function openDayModal(dateStr){
+  removeIfExists('dayModal');
+  const list = (await idbGetAllByRange('schedules', 'date', IDBKeyRange.only(dateStr))).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='dayModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>${dateStr} 일정</h3>
+      <div id="dayModalList">
+        ${list.length===0? '<p class="empty">등록된 일정이 없어요.</p>' : list.map(s=>renderScheduleItemHtml(s)).join('')}
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="closeModal('dayModal'); openScheduleModal('${dateStr}')">+ 일정 추가</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+}
+function renderScheduleItemHtml(s){
+  return `
+    <div class="sched-item ${s.status==='done'?'done':''}">
+      <div class="sched-check" onclick="toggleScheduleDone('${s.id}')">${icon('check',12)}</div>
+      <div class="sched-body">
+        <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
+        <div class="sched-sub">${s.time? s.time+' · ':''}${escapeHtml(s.purpose||'')}</div>
+        <div style="margin-top:5px;"><a href="${googleCalendarUrl(s)}" target="_blank" rel="noopener" class="link" style="margin-left:0;">내 캘린더에 추가</a></div>
+      </div>
+      <div class="sched-actions">
+        <button class="action" style="color:var(--muted);" onclick="closeModal('dayModal'); openScheduleModal('${s.date}','${s.id}')">${icon('edit',15)}</button>
+        <button class="action" style="color:var(--danger);" onclick="deleteScheduleConfirm('${s.id}')">${icon('trash',16)}</button>
+      </div>
+    </div>`;
+}
+function googleCalendarUrl(s){
+  const startDate = s.date.replace(/-/g,'');
+  let datesParam;
+  if(s.time){
+    const [hh,mm] = s.time.split(':');
+    const startDT = `${startDate}T${hh}${mm}00`;
+    const endObj = new Date(`${s.date}T${s.time}:00`);
+    endObj.setHours(endObj.getHours()+1);
+    const endDT = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}T${pad2(endObj.getHours())}${pad2(endObj.getMinutes())}00`;
+    datesParam = `${startDT}/${endDT}`;
+  } else {
+    const endObj = new Date(s.date+'T00:00:00'); endObj.setDate(endObj.getDate()+1);
+    const endDate = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}`;
+    datesParam = `${startDate}/${endDate}`;
+  }
+  const text = encodeURIComponent(s.targetText||'방문 일정');
+  const details = encodeURIComponent(s.purpose||'');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${datesParam}&details=${details}`;
+}
+async function toggleScheduleDone(id){
+  const s = await idbGet('schedules', id);
+  if(!s) return;
+  s.status = s.status==='done' ? 'planned' : 'done';
+  await idbPut('schedules', s);
+  toast(s.status==='done' ? '완료로 표시했어요' : '예정으로 되돌렸어요');
+  removeIfExists('dayModal');
+  renderCalendar();
+}
+async function deleteScheduleConfirm(id){
+  const ok = await showConfirm({title:'일정 삭제', message:'이 일정을 삭제할까요?', confirmLabel:'삭제', danger:true});
+  if(!ok) return;
+  await idbDelete('schedules', id);
+  toast('삭제했어요');
+  removeIfExists('dayModal');
+  renderCalendar();
+}
+async function openScheduleModal(dateStr, scheduleId){
+  removeIfExists('scheduleModal');
+  let existing = null;
+  if(scheduleId) existing = await idbGet('schedules', scheduleId);
+  scheduleSelectedTrialId = existing ? (existing.trialId||null) : null;
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='scheduleModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>${scheduleId? '일정 수정':'일정 추가'}</h3>
+      <div class="field">
+        <label>날짜</label>
+        <input type="date" id="schedDate" value="${existing? existing.date : dateStr}">
+      </div>
+      <div class="field">
+        <label>시간 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="time" id="schedTime" value="${existing? (existing.time||''):''}">
+      </div>
+      <div class="field">
+        <label>방문 대상</label>
+        <input type="text" id="schedTarget" placeholder="시교 검색 또는 직접 입력" value="${existing? escapeHtml(existing.targetText||''):''}" oninput="renderScheduleSuggestions()">
+        <div id="schedSuggestList"></div>
+      </div>
+      <div class="field">
+        <label>메모 (선택)</label>
+        <textarea id="schedPurpose" placeholder="예: 생육 상태 점검">${existing? escapeHtml(existing.purpose||''):''}</textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="cancelAction(()=>closeModal('scheduleModal'))">취소</button>
+        <button class="btn btn-primary" onclick="saveSchedule('${scheduleId||''}')">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+}
+async function renderScheduleSuggestions(){
+  const q = document.getElementById('schedTarget').value.trim().toLowerCase();
+  scheduleSelectedTrialId = null;
+  const listEl = document.getElementById('schedSuggestList');
+  if(!q){ listEl.innerHTML=''; return; }
+  const trials = await idbGetAll('trials');
+  const matched = trials.filter(t=> trialTitle(t).toLowerCase().includes(q) || t.seg.toLowerCase().includes(q)).slice(0,5);
+  listEl.innerHTML = matched.map(t=>`<div class="settings-row" style="padding:9px 10px;" onclick="pickScheduleTrial('${t.id}')"><span style="font-size:12.5px;">${trialTitle(t)}</span></div>`).join('');
+}
+async function pickScheduleTrial(trialId){
+  const t = await idbGet('trials', trialId);
+  scheduleSelectedTrialId = trialId;
+  document.getElementById('schedTarget').value = trialTitle(t);
+  document.getElementById('schedSuggestList').innerHTML='';
+}
+async function saveSchedule(scheduleId){
+  const date = document.getElementById('schedDate').value;
+  const time = document.getElementById('schedTime').value;
+  const targetText = document.getElementById('schedTarget').value.trim();
+  const purpose = document.getElementById('schedPurpose').value.trim();
+  if(!date || !targetText){ toast('날짜와 방문 대상을 입력해주세요'); return; }
+  const id = scheduleId || uid();
+  const existing = scheduleId ? await idbGet('schedules', id) : null;
+  await idbPut('schedules', {
+    id, date, time, targetText, purpose,
+    trialId: scheduleSelectedTrialId,
+    status: existing ? existing.status : 'planned',
+    createdAt: existing ? existing.createdAt : Date.now()
+  });
+  closeModal('scheduleModal');
+  toast(scheduleId? '일정을 수정했어요':'일정을 등록했어요');
+  renderCalendar();
+}
+async function checkTodaySchedules(){
+  if(!appSettings.scheduleReminders) return;
+  const today = todayStr();
+  const list = (await idbGetAllByRange('schedules', 'date', IDBKeyRange.only(today))).filter(s=>s.status!=='done');
+  if(list.length===0) return;
+  rawToast(`오늘 방문 예정 일정이 ${list.length}건 있어요`);
+}
+
 function enableRotatorZoom(rotator){
   let scale=1, startDist=0, startScale=1, lastTap=0;
   let panX=0, panY=0;         // 로컬(회전 전) 좌표계 기준 누적 이동량
@@ -2853,8 +3137,8 @@ async function performBackup(silent){
   try{
     setStatus('백업 준비 중...');
     const token = await getValidToken();
-    const [crops, trials, photos, notes, metaAll, comparisons] = await Promise.all([
-      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons')
+    const [crops, trials, photos, notes, metaAll, comparisons, schedules] = await Promise.all([
+      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
     ]);
 
     // 안전장치: 로컬에 시교가 하나도 없는데 예전 백업은 있는 상태라면, 실수로 빈 데이터를 덮어쓰는 걸 막음
@@ -2883,7 +3167,7 @@ async function performBackup(silent){
       const b64 = await blobToBase64(c.blob);
       comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
     }
-    const backup = { version:2, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut };
+    const backup = { version:3, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut, schedules };
     const json = JSON.stringify(backup);
 
     setStatus('업로드 중...');
@@ -3011,6 +3295,7 @@ async function confirmRestoreFile(fileId, label){
       const blob = base64ToBlob(c.data, c.mime);
       await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
     }
+    for(const s of backup.schedules||[]) await idbPut('schedules', s);
     await loadSettings();
     statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
     toast('복원 완료했어요');
@@ -3097,6 +3382,7 @@ openDB().then(async ()=>{
   go('home');
   window.addEventListener('load', ()=>{
     setTimeout(()=>{ autoBackupCheckAndRun(); }, 2000);
+    setTimeout(()=>{ checkTodaySchedules(); }, 1200);
   });
 });
 </script>
