@@ -397,7 +397,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v28 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v30 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -902,6 +902,7 @@ async function go(view, arg, fromPopstate){
       const statusEl = document.getElementById('syncStatusText');
       if(statusEl) statusEl.textContent = `마지막 백업: ${new Date(lastMeta.value).toLocaleString('ko-KR')}`;
     }
+    if(appSettings.syncEnabled) trySilentGoogleSignIn();
   }
   if(view==='newtrial'){ await renderNewTrialForm(); }
   if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
@@ -2527,7 +2528,30 @@ async function shareReport(){
 /* ================= 구글 동기화 ================= */
 const GOOGLE_CLIENT_ID = '101745594691-bri5ddan44ksiiq72ut2ckb0t501uk8e.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const BACKUP_FILENAME = 'croplog-backup.json';
+const BACKUP_PREFIX = 'croplog-backup-';
+const MAX_BACKUP_VERSIONS = 5; // 오늘/어제/그제/1주일전/1달전, 총 5개 슬롯
+function selectBackupsToKeep(files){
+  const now = Date.now();
+  const DAY = 86400000;
+  const targetDays = [0, 1, 2, 7, 30]; // 최근일수록 촘촘하게, 오래될수록 듬성듬성
+  const parsed = files.map(f=>{
+    const ts = parseInt(f.name.replace(BACKUP_PREFIX,'').replace('.json',''), 10);
+    return { id:f.id, name:f.name, ts, ageDays: isNaN(ts) ? null : (now-ts)/DAY };
+  }).filter(f=> f.ageDays !== null);
+
+  const keepIds = new Set();
+  const used = new Set();
+  targetDays.forEach(target=>{
+    let best = null, bestDiff = Infinity;
+    parsed.forEach(f=>{
+      if(used.has(f.id)) return;
+      const diff = Math.abs(f.ageDays - target);
+      if(diff < bestDiff){ bestDiff = diff; best = f; }
+    });
+    if(best){ keepIds.add(best.id); used.add(best.id); }
+  });
+  return keepIds;
+}
 let gTokenClient = null;
 let gAccessToken = null;
 let gTokenExpiry = 0;
@@ -2565,6 +2589,32 @@ async function getValidToken(){
   if(gAccessToken && Date.now() < gTokenExpiry) return gAccessToken;
   return await requestAccessToken(!gAccessToken);
 }
+async function trySilentGoogleSignIn(){
+  if(gAccessToken && Date.now() < gTokenExpiry) return; // 이미 유효한 토큰 있음
+  if(!ensureTokenClient()) return;
+  try{
+    await new Promise((resolve, reject)=>{
+      gTokenClient.callback = (resp)=>{
+        if(resp.error){ reject(new Error(resp.error)); return; }
+        gAccessToken = resp.access_token;
+        gTokenExpiry = Date.now() + (resp.expires_in*1000 - 60000);
+        resolve();
+      };
+      gTokenClient.requestAccessToken({prompt:''});
+    });
+    document.getElementById('syncSignedOutBox').classList.add('hidden');
+    document.getElementById('syncSignedInBox').classList.remove('hidden');
+    try{
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+gAccessToken}});
+      const info = await res.json();
+      document.getElementById('syncAccountInfo').textContent = `${info.email || '구글 계정'}으로 로그인됨`;
+    }catch(e){
+      document.getElementById('syncAccountInfo').textContent = '로그인됨';
+    }
+  }catch(e){
+    // 조용한 재로그인 실패 시 그냥 로그인 안 된 상태로 둠 (사용자가 직접 로그인 버튼 눌러야 함)
+  }
+}
 async function startGoogleSignIn(){
   try{
     await requestAccessToken(true);
@@ -2592,14 +2642,13 @@ function signOutGoogle(){
   document.getElementById('syncStatusText').textContent = '';
   toast('로그아웃했어요');
 }
-async function findBackupFileId(token){
-  const q = encodeURIComponent(`name='${BACKUP_FILENAME}' and trashed=false`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`, {
+async function listBackupFiles(token){
+  const q = encodeURIComponent(`name contains '${BACKUP_PREFIX}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=name desc`, {
     headers:{ Authorization:'Bearer '+token }
   });
   const data = await res.json();
-  if(data.files && data.files.length) return data.files[0].id;
-  return null;
+  return (data.files||[]).filter(f=>f.name.startsWith(BACKUP_PREFIX)).sort((a,b)=> b.name.localeCompare(a.name));
 }
 function blobToBase64(blob){
   return new Promise((resolve, reject)=>{
@@ -2624,6 +2673,21 @@ async function performBackup(silent){
     const [crops, trials, photos, notes, metaAll, comparisons] = await Promise.all([
       idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons')
     ]);
+
+    // 안전장치: 로컬에 시교가 하나도 없는데 예전 백업은 있는 상태라면, 실수로 빈 데이터를 덮어쓰는 걸 막음
+    if(trials.length===0){
+      const existing = await listBackupFiles(token);
+      if(existing.length>0){
+        if(silent){ setStatus(''); return false; }
+        const proceed = await showConfirm({
+          title:'빈 데이터 백업 주의',
+          message:'지금 이 기기에 등록된 시교가 하나도 없어요.\n이 상태로 백업하면 기존에 저장해둔 데이터를 잃을 수 있어요. 정말 진행할까요?',
+          confirmLabel:'그래도 백업', danger:true
+        });
+        if(!proceed){ setStatus(''); return false; }
+      }
+    }
+
     const photosOut = [];
     for(let i=0;i<photos.length;i++){
       const p = photos[i];
@@ -2640,22 +2704,28 @@ async function performBackup(silent){
     const json = JSON.stringify(backup);
 
     setStatus('업로드 중...');
-    const existingId = await findBackupFileId(token);
-    const metadata = { name: BACKUP_FILENAME, mimeType:'application/json' };
+    const filename = `${BACKUP_PREFIX}${Date.now()}.json`;
+    const metadata = { name: filename, mimeType:'application/json' };
     const boundary = 'croplog_boundary_' + Date.now();
     const body =
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${existingId ? '{}' : JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
       `--${boundary}\r\nContent-Type: application/json\r\n\r\n${json}\r\n` +
       `--${boundary}--`;
-    const url = existingId
-      ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart`
-      : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-    const res = await fetch(url, {
-      method: existingId ? 'PATCH' : 'POST',
+    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`, {
+      method: 'POST',
       headers:{ Authorization:'Bearer '+token, 'Content-Type': `multipart/related; boundary=${boundary}` },
       body
     });
     if(!res.ok) throw new Error('upload failed: '+res.status);
+
+    // 오래된 백업 정리 — 최근 며칠은 촘촘하게, 오래된 건 듬성듬성(오늘/어제/그제/1주일전/1달전) 보관
+    const allBackups = await listBackupFiles(token);
+    const keepIds = selectBackupsToKeep(allBackups);
+    const toDelete = allBackups.filter(f=>!keepIds.has(f.id));
+    for(const f of toDelete){
+      await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, { method:'DELETE', headers:{ Authorization:'Bearer '+token } }).catch(()=>{});
+    }
+
     await idbPut('meta', {key:'lastBackupAt', value: Date.now()});
     setStatus(`마지막 백업: ${new Date().toLocaleString('ko-KR')}`);
     if(silent){ if(appSettings.feedback) rawToast('자동 백업을 완료했어요'); }
@@ -2692,19 +2762,53 @@ async function autoBackupCheckAndRun(){
   }
 }
 async function restoreFromDrive(){
+  const statusEl = document.getElementById('syncStatusText');
+  try{
+    statusEl.textContent = '백업 목록 확인 중...';
+    const token = await getValidToken();
+    const files = await listBackupFiles(token);
+    statusEl.textContent = '';
+    if(files.length===0){ toast('드라이브에 백업 파일이 없어요'); return; }
+    openBackupPickerModal(files);
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '';
+    toast(`백업 목록을 불러오지 못했어요: ${e.message || e}`);
+  }
+}
+function openBackupPickerModal(files){
+  removeIfExists('backupPickModal');
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='backupPickModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>복원할 백업 선택</h3>
+      <p style="font-size:12px;color:var(--muted);margin:-8px 0 14px;">최근 ${files.length}개의 백업 중 하나를 골라주세요.</p>
+      ${files.map(f=>{
+        const ts = parseInt(f.name.replace(BACKUP_PREFIX,'').replace('.json',''), 10);
+        const dateLabel = ts ? new Date(ts).toLocaleString('ko-KR') : f.name;
+        const ageDays = ts ? Math.floor((Date.now()-ts)/86400000) : null;
+        const rel = ageDays===null ? '' : ageDays===0 ? '오늘' : ageDays===1 ? '어제' : `${ageDays}일 전`;
+        const fullLabel = rel ? `${rel} · ${dateLabel}` : dateLabel;
+        return `<div class="settings-row" onclick="confirmRestoreFile('${f.id}','${dateLabel.replace(/'/g,"")}')"><span>${fullLabel}</span><span class="chev">${icon('chevRight',14)}</span></div>`;
+      }).join('')}
+      <button class="btn btn-ghost" style="margin-top:14px;" onclick="closeModal('backupPickModal')">취소</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+}
+async function confirmRestoreFile(fileId, label){
+  closeModal('backupPickModal');
   const ok = await showConfirm({
     title:'복원하기',
-    message:'구글 드라이브에 저장된 백업으로 복원할까요?\n지금 이 기기에 있는 데이터는 백업 내용으로 덮어써져요.',
+    message:`"${label}" 시점의 백업으로 복원할까요?\n지금 이 기기에 있는 데이터는 그 시점 내용으로 덮어써져요.`,
     confirmLabel:'복원', danger:true
   });
   if(!ok) return;
   const statusEl = document.getElementById('syncStatusText');
   try{
-    statusEl.textContent = '백업 파일 확인 중...';
-    const token = await getValidToken();
-    const fileId = await findBackupFileId(token);
-    if(!fileId){ toast('드라이브에 백업 파일이 없어요'); statusEl.textContent=''; return; }
     statusEl.textContent = '다운로드 중...';
+    const token = await getValidToken();
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers:{ Authorization:'Bearer '+token }
     });
