@@ -144,6 +144,8 @@
   #app.modal-lock main{ overflow:hidden !important; }
 
   .field{margin-bottom:14px;}
+  .field-row{display:flex;gap:8px;}
+  .field-row .field{flex:1;min-width:0;}
   .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:700;}
   .field input[type=text], .field input[type=date], .field select, .field textarea{
     width:100%;background:var(--paper);border:1px solid var(--line);border-radius:9px;
@@ -397,7 +399,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v30 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v32 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -491,21 +493,33 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" style="margin-top:-6px;">
         <label>SEG</label>
         <input type="text" id="ntSeg" placeholder="예: 신미계">
       </div>
-      <div class="field">
-        <label>제품/시교명</label>
-        <input type="text" id="ntName" placeholder="예: 더강한탄청양">
+      <div class="field-row">
+        <div class="field">
+          <label>제품/시교명</label>
+          <input type="text" id="ntName" placeholder="예: 602">
+        </div>
+        <div class="field">
+          <label>지역</label>
+          <input type="text" id="ntRegion" placeholder="예: 인제">
+        </div>
+        <div class="field">
+          <label>성함</label>
+          <input type="text" id="ntGrowerName" placeholder="예: 송재호">
+        </div>
       </div>
-      <div class="field">
-        <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="date" id="ntSowDate">
-      </div>
-      <div class="field">
-        <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="date" id="ntTransplantDate">
+      <div class="field-row">
+        <div class="field">
+          <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="ntSowDate">
+        </div>
+        <div class="field">
+          <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="ntTransplantDate">
+        </div>
       </div>
       <div class="field">
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
@@ -1001,7 +1015,7 @@ async function renderHome(){
       return `<div class="pin-card" style="background:${c.color};color:${fg}" onclick="go('detail','${t.id}')">
         <div class="ribbon">${icon('starFilled',12)}</div>
         <div class="crop-tag" style="color:${fg}">${c.name}</div>
-        <div class="name">${t.name}</div>
+        <div class="name">${trialTitle(t)}</div>
         <div class="seg">${t.seg}</div>
       </div>`;
     }).join('');
@@ -1018,7 +1032,7 @@ async function renderHome(){
       return `<div class="recent-item" onclick="go('detail','${t.id}')">
         <div class="bar" style="background:${c.color}"></div>
         <div class="info">
-          <div class="name">${t.name}</div>
+          <div class="name">${trialTitle(t)}</div>
           <div class="sub">${c.name} · ${t.seg}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
@@ -1061,7 +1075,7 @@ async function renderSearch(){
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
       return `<div class="list-item" onclick="go('detail','${t.id}')">
         <div class="info">
-          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.name}</div>
+          <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${trialTitle(t)}</div>
           <div class="sub">${c.name} · ${t.seg}</div>
         </div>
         <div class="chev">›</div>
@@ -1224,6 +1238,8 @@ async function renderNewTrialForm(){
   document.getElementById('customCropBox').classList.add('hidden');
   document.getElementById('ntSeg').value='';
   document.getElementById('ntName').value='';
+  document.getElementById('ntRegion').value='';
+  document.getElementById('ntGrowerName').value='';
   document.getElementById('ntSowDate').value='';
   document.getElementById('ntTransplantDate').value='';
   document.getElementById('ntReferenceVariety').value='';
@@ -1272,11 +1288,13 @@ function selectCustomCrop(el){
 async function createTrial(){
   const seg = document.getElementById('ntSeg').value.trim();
   const name = document.getElementById('ntName').value.trim();
+  const region = document.getElementById('ntRegion').value.trim();
+  const growerName = document.getElementById('ntGrowerName').value.trim();
   const sowDate = document.getElementById('ntSowDate').value;
   const transplantDate = document.getElementById('ntTransplantDate').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('nt');
-  if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
+  if(!seg || !name || !region || !growerName){ toast('SEG·제품/시교명·지역·성함을 입력해주세요'); return; }
 
   let cropId = selectedCropId;
   if(useCustomCrop){
@@ -1289,7 +1307,7 @@ async function createTrial(){
   if(!cropId){ toast('품목을 선택해주세요'); return; }
 
   const id = uid();
-  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: Date.now()});
+  await idbPut('trials', {id, cropId, seg, name, region, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: Date.now()});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -1324,17 +1342,29 @@ async function openTrialEditModal(){
         <label>SEG</label>
         <input type="text" id="editTrialSeg" value="${t.seg}">
       </div>
-      <div class="field">
-        <label>제품/시교명</label>
-        <input type="text" id="editTrialName" value="${t.name}">
+      <div class="field-row">
+        <div class="field">
+          <label>제품/시교명</label>
+          <input type="text" id="editTrialName" value="${t.name}">
+        </div>
+        <div class="field">
+          <label>지역</label>
+          <input type="text" id="editTrialRegion" value="${t.region||''}" placeholder="예: 인제">
+        </div>
+        <div class="field">
+          <label>성함</label>
+          <input type="text" id="editTrialGrowerName" value="${t.growerName||''}" placeholder="예: 송재호">
+        </div>
       </div>
-      <div class="field">
-        <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="date" id="editTrialSowDate" value="${t.sowDate||''}">
-      </div>
-      <div class="field">
-        <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="date" id="editTrialTransplantDate" value="${t.transplantDate||''}">
+      <div class="field-row">
+        <div class="field">
+          <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="editTrialSowDate" value="${t.sowDate||''}">
+        </div>
+        <div class="field">
+          <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="editTrialTransplantDate" value="${t.transplantDate||''}">
+        </div>
       </div>
       <div class="field">
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
@@ -1358,13 +1388,15 @@ async function saveTrialEdit(){
   const cropId = document.getElementById('editTrialCrop').value;
   const seg = document.getElementById('editTrialSeg').value.trim();
   const name = document.getElementById('editTrialName').value.trim();
+  const region = document.getElementById('editTrialRegion').value.trim();
+  const growerName = document.getElementById('editTrialGrowerName').value.trim();
   const sowDate = document.getElementById('editTrialSowDate').value;
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('editTrial');
-  if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
+  if(!seg || !name || !region || !growerName){ toast('SEG·제품/시교명·지역·성함을 입력해주세요'); return; }
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
   delete t.fieldAddress;
   await idbPut('trials', t);
   closeModal('trialEditModal');
@@ -1376,7 +1408,7 @@ async function deleteTrialConfirm(){
   const t = await idbGet('trials', currentTrialId);
   const ok = await showConfirm({
     title:'시교 삭제',
-    message:`"${t.name}" 시교를 삭제할까요?\n등록된 사진과 메모도 함께 삭제되고 되돌릴 수 없어요.`,
+    message:`"${trialTitle(t)}" 시교를 삭제할까요?\n등록된 사진과 메모도 함께 삭제되고 되돌릴 수 없어요.`,
     confirmLabel:'삭제', danger:true
   });
   if(!ok) return;
@@ -1406,7 +1438,7 @@ async function renderDetail(trialId){
   const t = await idbGet('trials', trialId);
   if(!t){ go('home'); return; }
   const c = await idbGet('crops', t.cropId);
-  document.getElementById('detailTitle').textContent = t.name;
+  document.getElementById('detailTitle').textContent = trialTitle(t);
   const dateParts = [];
   if(t.sowDate) dateParts.push(`파종일 ${t.sowDate}`);
   if(t.transplantDate) dateParts.push(`정식일 ${t.transplantDate}`);
@@ -1540,7 +1572,7 @@ function setXCompareCount(n){
   renderXCompare();
 }
 function buildTrialLabelLines(c, t, p){
-  const lines = [`${c.name} · ${t.seg}`, t.name];
+  const lines = [`${c.name} · ${t.seg}`, trialTitle(t)];
   const dateBits = [];
   if(t.sowDate) dateBits.push(`파종일 ${t.sowDate}`);
   if(t.transplantDate) dateBits.push(`정식일 ${t.transplantDate}`);
@@ -1685,7 +1717,7 @@ async function saveDetailComparison(){
   const t = await idbGet('trials', currentTrialId);
   const c = await idbGet('crops', t.cropId);
   const photoRecords = await Promise.all(ids.map(id=>idbGet('photos', id)));
-  const sharedHeader = [`${c.name} · ${t.seg} · ${t.name}`];
+  const sharedHeader = [`${c.name} · ${t.seg} · ${trialTitle(t)}`];
   const dateBits = buildDateBitsLine(t);
   if(dateBits) sharedHeader.push(dateBits);
   const photoInfos = photoRecords.map(p=>({ blob:p.blob, lines:[p.date] }));
@@ -1794,7 +1826,7 @@ async function renderXTrialList(which){
     const c = cropMap[t.cropId] || {name:'?',color:'#999'};
     return `<div class="list-item" onclick="openXPhotoPicker('${which}','${t.id}')">
       <div class="info">
-        <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${t.name}</div>
+        <div class="name"><span class="crop-dot" style="background:${c.color}"></span>${trialTitle(t)}</div>
         <div class="sub">${c.name} · ${t.seg}</div>
       </div>
       <div class="chev">${icon('chevRight',14)}</div>
@@ -1813,7 +1845,7 @@ async function openXPhotoPicker(which, trialId){
   backdrop.className='modal-backdrop'; backdrop.id='xPhotoPickModal';
   backdrop.innerHTML = `
     <div class="modal-sheet" style="max-height:75vh;">
-      <h3>${t.name} · 사진 선택</h3>
+      <h3>${trialTitle(t)} · 사진 선택</h3>
       ${dateKeys.length===0 ? '<p class="empty">이 시교엔 아직 사진이 없어요.</p>' : dateKeys.map(d=>`
         <div class="date-group">
           <div class="date-head">${d}</div>
@@ -2261,9 +2293,9 @@ function renderLightbox(){
   lb.innerHTML = `
     <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
     ${p.isMarked && p.markNote ? `<div class="lb-comment">${icon('pen',15)} ${escapeHtml(p.markNote)}</div>` : ''}
-    <div class="lb-imgwrap">
+    <div class="lb-imgwrap" id="lbImgWrap">
       ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
-      <img src="${url}">
+      <img id="lbImg" src="${url}">
       ${lightboxIndex<allPhotosCache.length-1? `<div class="lb-nav lb-next" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>`:''}
     </div>
     <div class="lb-actions">
@@ -2272,7 +2304,73 @@ function renderLightbox(){
       <a class="a" onclick="openMarkingEditor('${p.id}')">마킹</a>
       <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
     </div>`;
-  attachLightboxSwipe(lb);
+  attachLightboxGestures();
+}
+function attachLightboxGestures(){
+  const wrap = document.getElementById('lbImgWrap');
+  const img = document.getElementById('lbImg');
+  if(!wrap || !img) return;
+  img.style.transition = 'transform .12s ease';
+  wrap.style.touchAction = 'none';
+  let scale=1, panX=0, panY=0;
+  let startDist=0, startScale=1;
+  let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
+  let mode=null; // 'pinch' | 'pan' | 'swipe'
+  let swipeStartX=0, swipeStartY=0;
+  let lastTap=0;
+  function apply(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+
+  wrap.addEventListener('touchstart', (e)=>{
+    if(e.touches.length===2){
+      mode='pinch';
+      startDist = dist(e.touches);
+      startScale = scale;
+    } else if(e.touches.length===1){
+      const t = e.touches[0];
+      swipeStartX = t.clientX; swipeStartY = t.clientY;
+      if(scale>1){
+        mode='pan';
+        startTouchX = t.clientX; startTouchY = t.clientY;
+        startPanX = panX; startPanY = panY;
+      } else {
+        mode='swipe';
+      }
+    }
+  }, {passive:true});
+
+  wrap.addEventListener('touchmove', (e)=>{
+    if(mode==='pinch' && e.touches.length===2){
+      e.preventDefault();
+      const d = dist(e.touches);
+      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(); }
+    } else if(mode==='pan' && e.touches.length===1){
+      e.preventDefault();
+      const t = e.touches[0];
+      panX = startPanX + (t.clientX-startTouchX);
+      panY = startPanY + (t.clientY-startTouchY);
+      apply();
+    }
+  }, {passive:false});
+
+  wrap.addEventListener('touchend', (e)=>{
+    if(mode==='swipe'){
+      const t = e.changedTouches[0];
+      const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
+      if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.2){
+        if(dx<0) lightboxNav(1); else lightboxNav(-1);
+      } else {
+        const now = Date.now();
+        if(now-lastTap<300){
+          scale = scale>1 ? 1 : 2.2;
+          panX=0; panY=0;
+          apply();
+        }
+        lastTap = now;
+      }
+    }
+    if(e.touches.length===0) mode=null;
+  });
 }
 function lightboxNav(dir){
   const newIdx = lightboxIndex + dir;
@@ -2291,17 +2389,6 @@ async function deleteLightboxPhoto(){
   toast('사진을 삭제했어요');
   closeLightbox();
   if(currentTrialId) renderDetail(currentTrialId);
-}
-function attachLightboxSwipe(el){
-  let startX=0, startY=0;
-  el.ontouchstart = (e)=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; };
-  el.ontouchend = (e)=>{
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)*1.2){
-      if(dx<0) lightboxNav(1); else lightboxNav(-1);
-    }
-  };
 }
 async function downloadBlob(photoId){
   const p = await idbGet('photos', photoId);
@@ -2326,7 +2413,7 @@ async function renderUpload(trialId){
   document.getElementById('uploadDate').value = todayStr();
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
-  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${t.name}`;
+  document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${trialTitle(t)}`;
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
@@ -2431,6 +2518,9 @@ function setReportMode(mode){
 function getSelectedPhotos(){
   return reportPhotosCache.filter(p=>selectedReportIds.has(p.id)).sort((a,b)=>a.date.localeCompare(b.date));
 }
+function trialTitle(t){
+  return [t.name, t.region, t.growerName].filter(Boolean).join(' ');
+}
 function buildDateBitsLine(t){
   const bits = [];
   if(t.sowDate) bits.push(`파종일 ${t.sowDate}`);
@@ -2442,7 +2532,7 @@ function renderCollagePreview(){
   const sel = getSelectedPhotos();
   const dateBits = buildDateBitsLine(t);
   document.getElementById('reportPreviewCard').innerHTML = `
-    <div class="report-head">${t.name} 생육 리포트</div>
+    <div class="report-head">${trialTitle(t)} 생육 리포트</div>
     <div class="report-sub">${c.name} · ${t.seg} · ${sel[0]?.date||'-'}~${sel[sel.length-1]?.date||'-'}</div>
     ${dateBits ? `<div class="report-sub">${dateBits}</div>` : ''}
     <div class="report-row" style="flex-wrap:wrap;">
@@ -2463,7 +2553,7 @@ async function buildReportCanvas(){
   const ctx = canvas.getContext('2d');
   ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#3c3226'; ctx.font='bold 28px sans-serif';
-  ctx.fillText(`${t.name} 생육 리포트`, 20, 38);
+  ctx.fillText(`${trialTitle(t)} 생육 리포트`, 20, 38);
   ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
   ctx.fillText(`${c.name} · ${t.seg}`, 20, 66);
   if(dateBits){ ctx.fillText(dateBits, 20, 92); }
@@ -2845,11 +2935,11 @@ async function exportCSV(){
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
   const photoCount = {};
   photos.forEach(p=>{ photoCount[p.trialId] = (photoCount[p.trialId]||0)+1; });
-  const header = ['품목','SEG','제품/시교명','파종일','정식일','대비종','밭 주소','사진 수','등록일'];
+  const header = ['품목','SEG','제품/시교명','지역','성함','파종일','정식일','대비종','밭 주소','사진 수','등록일'];
   const rows = trials.map(t=>{
     const c = cropMap[t.cropId] || {name:''};
     return [
-      c.name||'', t.seg||'', t.name||'', t.sowDate||'', t.transplantDate||'',
+      c.name||'', t.seg||'', t.name||'', t.region||'', t.growerName||'', t.sowDate||'', t.transplantDate||'',
       t.referenceVariety||'', (t.fieldAddresses||(t.fieldAddress?[t.fieldAddress]:[])).join('; '), String(photoCount[t.id]||0),
       new Date(t.createdAt).toLocaleDateString('ko-KR')
     ];
