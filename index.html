@@ -343,7 +343,7 @@
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v15 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v16 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -419,7 +419,7 @@
     </header>
     <main>
       <div id="detailDates" class="detail-dates hidden"></div>
-      <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> 성장 비교</div>
+      <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> 성장 비교 <span class="link" onclick="resetDetailCompare()">초기화</span></div>
       <div class="compare-wrap compare-wrap-big">
         <div class="compare-imgs compare-imgs-big">
           <div class="imgbox cmp-tap" id="cmpOldImg" onclick="openComparePicker('old')"></div>
@@ -510,7 +510,7 @@
   <section id="view-xcompare" class="hidden">
     <header class="topbar">
       <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg> 품종 비교</h1>
-      <button class="action" onclick="resetXCompare()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M20 14a8 8 0 1 1-2-8.6"/></svg></button>
+      <button class="action" onclick="resetXCompare()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0 1 13-5"/><polyline points="18,3 18,7.3 13.7,7.3"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5"/><polyline points="6,21 6,16.7 10.3,16.7"/></svg></button>
     </header>
     <main>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:-4px 0 16px;">품목·품종에 상관없이 어떤 시교끼리도 자유롭게 골라 나란히 비교할 수 있어요.</p>
@@ -1224,6 +1224,13 @@ function pickComparePhoto(which, photoId){
   if(which==='old') cmpOldPhotoId = photoId; else cmpNewPhotoId = photoId;
   removeIfExists('comparePickModal');
   renderCompare();
+}
+function resetDetailCompare(){
+  if(allPhotosCache.length===0){ toast('등록된 사진이 없어요'); return; }
+  cmpOldPhotoId = allPhotosCache[0].id;
+  cmpNewPhotoId = allPhotosCache[allPhotosCache.length-1].id;
+  renderCompare();
+  toast('비교를 초기화했어요');
 }
 
 /* ================= 품종 비교 (교차 비교) ================= */
