@@ -268,6 +268,9 @@
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
   .detail-dates{font-size:12.5px;color:var(--ink);font-weight:700;margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 12px;line-height:1.6;}
+  .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 12px;}
+  .detail-address .addr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .detail-address .action{color:var(--muted);padding:4px;}
   .float-btn{
     position:fixed;left:16px;width:42px;height:42px;border-radius:50%;
     background:var(--paper);border:1px solid var(--line);color:var(--ink);
@@ -350,9 +353,10 @@
 
       <div class="settings-group">
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="exportCSV()"><span>전체 시교 목록 CSV로 내보내기</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v21 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v22 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -415,6 +419,10 @@
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
         <input type="text" id="ntReferenceVariety" placeholder="예: 기존 청양고추">
       </div>
+      <div class="field">
+        <label>밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="text" id="ntFieldAddress" placeholder="예: 강원 홍천군 서석면 ○○리 123">
+      </div>
       <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
     </main>
   </section>
@@ -432,6 +440,11 @@
     </header>
     <main>
       <div id="detailDates" class="detail-dates hidden"></div>
+      <div id="detailAddress" class="detail-address hidden">
+        <div class="addr-text" id="detailAddressText"></div>
+        <button class="action" onclick="copyFieldAddress()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+        <button class="action" onclick="openFieldAddressInMaps()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg></button>
+      </div>
 
       <div class="tab-row" style="margin-bottom:16px;">
         <div class="tab active" id="detailTabTimeline" onclick="switchDetailTab('timeline')">타임라인</div>
@@ -712,6 +725,21 @@ function textColorFor(bgHex){
 
 /* ================= 라우팅 ================= */
 let currentTrialId = null;
+let currentFieldAddress = '';
+function copyFieldAddress(){
+  if(!currentFieldAddress){ toast('등록된 주소가 없어요'); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(currentFieldAddress).then(()=>{
+      toast('주소를 복사했어요');
+    }).catch(()=>{ toast('복사에 실패했어요'); });
+  } else {
+    toast('이 브라우저는 복사가 지원되지 않아요');
+  }
+}
+function openFieldAddressInMaps(){
+  if(!currentFieldAddress){ toast('등록된 주소가 없어요'); return; }
+  window.location.href = `geo:0,0?q=${encodeURIComponent(currentFieldAddress)}`;
+}
 const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare'];
 const topLevelViews = ['home','xcompare','settings'];
 let navStack = [];
@@ -1023,6 +1051,7 @@ async function renderNewTrialForm(){
   document.getElementById('ntSowDate').value='';
   document.getElementById('ntTransplantDate').value='';
   document.getElementById('ntReferenceVariety').value='';
+  document.getElementById('ntFieldAddress').value='';
   document.getElementById('customCropName').value='';
 
   const cat = document.getElementById('colorCatalog');
@@ -1070,6 +1099,7 @@ async function createTrial(){
   const sowDate = document.getElementById('ntSowDate').value;
   const transplantDate = document.getElementById('ntTransplantDate').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
+  const fieldAddress = document.getElementById('ntFieldAddress').value.trim();
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
 
   let cropId = selectedCropId;
@@ -1083,7 +1113,7 @@ async function createTrial(){
   if(!cropId){ toast('품목을 선택해주세요'); return; }
 
   const id = uid();
-  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, referenceVariety, createdAt: Date.now()});
+  await idbPut('trials', {id, cropId, seg, name, sowDate, transplantDate, referenceVariety, fieldAddress, createdAt: Date.now()});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -1134,6 +1164,10 @@ async function openTrialEditModal(){
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
         <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 기존 청양고추">
       </div>
+      <div class="field">
+        <label>밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="text" id="editTrialFieldAddress" value="${t.fieldAddress||''}" placeholder="예: 강원 홍천군 서석면 ○○리 123">
+      </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="cancelAction(()=>closeModal('trialEditModal'))">취소</button>
         <button class="btn btn-primary" onclick="saveTrialEdit()">저장</button>
@@ -1149,9 +1183,10 @@ async function saveTrialEdit(){
   const sowDate = document.getElementById('editTrialSowDate').value;
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
+  const fieldAddress = document.getElementById('editTrialFieldAddress').value.trim();
   if(!seg || !name){ toast('SEG와 제품/시교명을 입력해주세요'); return; }
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddress = fieldAddress;
   await idbPut('trials', t);
   closeModal('trialEditModal');
   toast('수정했어요');
@@ -1200,6 +1235,14 @@ async function renderDetail(trialId){
   const detailDatesEl = document.getElementById('detailDates');
   if(dateParts.length){ detailDatesEl.textContent = dateParts.join(' · '); detailDatesEl.classList.remove('hidden'); }
   else { detailDatesEl.classList.add('hidden'); }
+  currentFieldAddress = t.fieldAddress || '';
+  const addrEl = document.getElementById('detailAddress');
+  if(currentFieldAddress){
+    document.getElementById('detailAddressText').textContent = currentFieldAddress;
+    addrEl.classList.remove('hidden');
+  } else {
+    addrEl.classList.add('hidden');
+  }
   const favMeta = (await idbGet('meta','favorites'))?.value || [];
   document.getElementById('favBtn').innerHTML = favMeta.includes(trialId) ? icon('starFilled',17) : icon('star',17);
 
@@ -2105,6 +2148,32 @@ async function restoreFromDrive(){
 }
 
 /* ================= 설정 ================= */
+async function exportCSV(){
+  const [crops, trials, photos] = await Promise.all([idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos')]);
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
+  const photoCount = {};
+  photos.forEach(p=>{ photoCount[p.trialId] = (photoCount[p.trialId]||0)+1; });
+  const header = ['품목','SEG','제품/시교명','파종일','정식일','대비종','밭 주소','사진 수','등록일'];
+  const rows = trials.map(t=>{
+    const c = cropMap[t.cropId] || {name:''};
+    return [
+      c.name||'', t.seg||'', t.name||'', t.sowDate||'', t.transplantDate||'',
+      t.referenceVariety||'', t.fieldAddress||'', String(photoCount[t.id]||0),
+      new Date(t.createdAt).toLocaleDateString('ko-KR')
+    ];
+  });
+  const escapeCell = (v)=>{
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+  const csv = [header, ...rows].map(row=>row.map(escapeCell).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `CropLog_시교목록_${todayStr()}.csv`;
+  a.click();
+  toast('CSV 파일을 저장했어요');
+}
 async function confirmResetData(){
   const ok = await showConfirm({
     title:'전체 데이터 초기화',
@@ -2140,6 +2209,12 @@ new MutationObserver(()=>{
 document.addEventListener('contextmenu', (e)=>{
   if(e.target && e.target.tagName==='IMG') e.preventDefault();
 });
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
 
 openDB().then(async ()=>{ await loadSettings(); await ensurePresetCrops(); go('home'); });
 </script>
