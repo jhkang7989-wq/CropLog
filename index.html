@@ -209,6 +209,19 @@
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
 
+  .mark-overlay{position:fixed;inset:0;background:#1e1a15;z-index:85;display:flex;flex-direction:column;overscroll-behavior:none;}
+  .mark-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;font-size:13px;font-weight:700;}
+  .mark-topbar .link{color:#fff;font-weight:700;}
+  .mark-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
+  #markCanvas{touch-action:none;border-radius:4px;}
+  .mark-toolbar{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0));display:flex;justify-content:space-between;align-items:center;gap:10px;background:#26221c;}
+  .mark-tools{display:flex;gap:6px;}
+  .mark-tool{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,0.1);color:#ccc;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
+  .mark-tool.active{background:var(--leaf);color:#fff;}
+  .mark-colors{display:flex;gap:6px;}
+  .mark-color{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .mark-color.active{border-color:#fff;}
+
   .date-group{margin-bottom:16px;}
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
   .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);}
@@ -216,6 +229,7 @@
   .photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
   .photo-thumb .chk{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;}
+  .mark-badge{position:absolute;bottom:5px;left:5px;width:20px;height:20px;border-radius:50%;background:#e5484d;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
   #timelineAll .photo-thumb .chk{display:none;}
   #timelineAll.select-mode .photo-thumb .chk{display:flex;}
   #timelineAll.select-mode .photo-thumb{outline:2px solid transparent;border-radius:8px;}
@@ -255,14 +269,18 @@
   .lb-prev{left:10px;}
   .lb-next{right:10px;}
   .lightbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
-  .lightbox .lb-actions{display:flex;gap:8px;padding:12px 14px 18px;}
-  .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px;border-radius:9px;font-size:12px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
+  .lightbox .lb-actions{display:flex;gap:6px;padding:12px 12px 18px;}
+  .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px 4px;border-radius:9px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
   .lightbox .lb-actions .a.primary{background:var(--leaf);}
 
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--soil);color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
 
   .settings-group{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+  .help-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;}
+  .help-title{font-size:13px;font-weight:800;color:var(--soil);margin-bottom:5px;}
+  .help-card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;}
+  .help-card p b{color:var(--ink);}
   .settings-row{padding:13px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
   .settings-row:last-child{border-bottom:none;}
   .settings-row .chev{color:var(--muted);}
@@ -322,14 +340,7 @@
       <span style="width:24px;"></span>
     </header>
     <main>
-      <div class="section-title" style="margin-top:0;">진동 피드백</div>
-      <div class="toggle-row">
-        <div class="label">저장 · 삭제 · 등록 시 진동 표시</div>
-        <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
-      </div>
-      <button class="btn btn-ghost" style="margin-bottom:22px;" onclick="rawToast('진동 피드백 테스트입니다')">진동 테스트해보기</button>
-
-      <div class="section-title">구글 동기화</div>
+      <div class="section-title" style="margin-top:0;">구글 동기화</div>
       <div class="toggle-row">
         <div class="label">구글 동기화 사용</div>
         <div class="switch" id="syncEnableSwitch" onclick="toggleSyncEnabled()"><div class="knob"></div></div>
@@ -351,12 +362,26 @@
         </div>
       </div>
 
+      <button class="btn btn-dark" style="margin-bottom:22px;" onclick="exportCSV()">
+        <svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><polyline points="7,11 12,16 17,11"/><path d="M4 19h16"/></svg>
+        전체 시교 목록 CSV로 내보내기
+      </button>
+
+      <div class="section-title">일반 설정</div>
+      <div class="toggle-row">
+        <div class="label">저장 · 삭제 · 등록 시 진동 표시</div>
+        <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
+      </div>
+      <button class="btn btn-ghost" style="margin-bottom:14px;" onclick="rawToast('진동 피드백 테스트입니다')">진동 테스트해보기</button>
       <div class="settings-group">
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
-        <div class="settings-row" onclick="exportCSV()"><span>전체 시교 목록 CSV로 내보내기</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="go('help')"><span>사용법 보기</span><span class="chev">›</span></div>
+      </div>
+
+      <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v22 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v23 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -370,6 +395,57 @@
     <main>
       <div id="cropList"></div>
       <p class="empty" id="cropEmpty">등록된 품목이 없어요. 새 시교 등록 시 자동으로 추가돼요.</p>
+    </main>
+  </section>
+
+  <!-- ===== 사용법 매뉴얼 ===== -->
+  <section id="view-help" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('settings')">‹ 설정</button>
+      <h1>사용법 보기</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="help-card">
+        <div class="help-title">① 시교 등록하기</div>
+        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명을 입력하면 등록돼요. 파종일·정식일·대비종·밭 주소는 알면 적어두면 좋지만 몰라도 등록 자체는 가능해요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">② 사진 등록하기</div>
+        <p>시교 상세 화면 "타임라인" 탭에서 <b>사진 추가</b>를 누르면 사진첩에서 고르거나 바로 촬영할 수 있어요. 촬영일자는 자동으로 오늘 날짜가 들어가요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">③ 성장 비교 / 품종 비교</div>
+        <p>시교 상세의 "성장비교" 탭에서는 같은 시교의 사진 2~4장을 골라 나란히 비교할 수 있고, 하단 <b>비교</b> 탭에서는 품목·품종이 달라도 아무 시교끼리나 골라 비교할 수 있어요. "가로로 크게 보기"를 누르면 화면 가득 확대해서 볼 수 있고, 손가락으로 확대/이동도 가능해요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">④ 사진 마킹하기</div>
+        <p>사진을 탭해서 크게 연 뒤 <b>마킹</b>을 누르면 병해충 발생 부위 등에 원·화살표·선·글자로 표시할 수 있어요. 마킹한 사진은 원본과 별도로 저장되고, 짧은 코멘트도 같이 남길 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑤ 사진 여러 장 한번에 삭제</div>
+        <p>타임라인에서 사진을 <b>길게 누르면</b> 선택 모드로 바뀌어요. 여러 장 체크한 뒤 하단의 "N개의 사진 삭제하기"를 누르면 한번에 지워져요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑥ 메모 남기기</div>
+        <p>"메모" 탭에서 날짜와 함께 생육상태·특이사항을 기록할 수 있어요. 수정·삭제도 자유롭게 가능해요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑦ 리포트 공유하기</div>
+        <p>원하는 사진을 골라 카톡 등으로 공유할 수 있어요. 한 장씩 개별 전송하거나, 여러 장을 한 이미지로 합친 콜라주로도 보낼 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑧ 밭 주소로 바로 길찾기</div>
+        <p>시교 상세에 밭 주소를 등록해두면, 주소 옆 복사 버튼으로 다른 앱에 붙여넣거나 지도 아이콘으로 바로 지도앱을 열어 길찾기 할 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑨ 구글 동기화 (백업/복원)</div>
+        <p>설정에서 구글 동기화를 켜고 로그인하면, "지금 백업하기"로 이 기기의 모든 데이터를 구글 드라이브에 저장할 수 있어요. 다른 기기에서는 로그인 후 "복원하기"로 그대로 불러올 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑩ 데이터 내보내기 (CSV)</div>
+        <p>설정의 "전체 시교 목록 CSV로 내보내기"를 누르면 등록된 모든 시교 정보가 표 파일로 다운로드돼요. 엑셀에서 바로 열어볼 수 있어요.</p>
+      </div>
     </main>
   </section>
 
@@ -689,7 +765,12 @@ function icon(name, size){
     chevLeft: `<svg ${c} ${s}><polyline points="15,4 7,12 15,20"/></svg>`,
     chevRight: `<svg ${c} ${s}><polyline points="9,4 17,12 9,20"/></svg>`,
     home: `<svg ${c} ${s}><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>`,
-    compare: `<svg ${c} ${s}><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><line x1="7" y1="9" x2="7" y2="9"/></svg>`
+    compare: `<svg ${c} ${s}><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><line x1="7" y1="9" x2="7" y2="9"/></svg>`,
+    pen: `<svg ${c} ${s}><path d="M4 20l4-1 11-11a2 2 0 0 0-3-3L5 16l-1 4Z"/></svg>`,
+    circleTool: `<svg ${c} ${s}><circle cx="12" cy="12" r="8"/></svg>`,
+    arrowTool: `<svg ${c} ${s}><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9,5 19,5 19,15"/></svg>`,
+    textTool: `<svg ${c} ${s}><line x1="5" y1="6" x2="19" y2="6"/><line x1="12" y1="6" x2="12" y2="19"/></svg>`,
+    undo: `<svg ${c} ${s}><path d="M4 8h9a5 5 0 0 1 0 10h-2"/><polyline points="8,4 4,8 8,12"/></svg>`
   };
   return icons[name] || '';
 }
@@ -740,7 +821,7 @@ function openFieldAddressInMaps(){
   if(!currentFieldAddress){ toast('등록된 주소가 없어요'); return; }
   window.location.href = `geo:0,0?q=${encodeURIComponent(currentFieldAddress)}`;
 }
-const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare'];
+const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help'];
 const topLevelViews = ['home','xcompare','settings'];
 let navStack = [];
 async function go(view, arg, fromPopstate){
@@ -977,6 +1058,31 @@ function showAlert({title, message, okLabel='확인'}){
     document.body.appendChild(backdrop);
     document.getElementById('alertOkBtn').onclick = ()=>{ removeIfExists('alertModal'); resolve(true); };
     attachBackdropDismiss(backdrop, ()=>resolve(true));
+  });
+}
+
+function promptText({title, placeholder='', defaultValue=''}){
+  return new Promise(resolve=>{
+    removeIfExists('promptModal');
+    const backdrop = document.createElement('div');
+    backdrop.className='modal-backdrop'; backdrop.id='promptModal';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h3>${title}</h3>
+        <div class="field"><input type="text" id="promptInput" value="${defaultValue}" placeholder="${placeholder}"></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="promptCancelBtn">취소</button>
+          <button class="btn btn-primary" id="promptOkBtn">확인</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    attachBackdropDismiss(backdrop, ()=>resolve(null));
+    document.getElementById('promptCancelBtn').onclick = ()=>{ removeIfExists('promptModal'); resolve(null); };
+    document.getElementById('promptOkBtn').onclick = ()=>{
+      const v = document.getElementById('promptInput').value.trim();
+      removeIfExists('promptModal'); resolve(v);
+    };
+    setTimeout(()=>{ const el=document.getElementById('promptInput'); if(el) el.focus(); }, 150);
   });
 }
 
@@ -1269,7 +1375,7 @@ async function renderDetail(trialId){
       <div class="date-group">
         <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
-          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoUrl(p)}"><div class="chk">${icon('check',12)}</div></div>`).join('')}
+          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
         </div>
       </div>`).join('');
   }
@@ -1700,6 +1806,175 @@ async function deleteTimelineSelected(){
   if(currentTrialId) renderDetail(currentTrialId);
 }
 
+/* ================= 사진 마킹 ================= */
+let markState = null;
+async function openMarkingEditor(photoId){
+  const p = await idbGet('photos', photoId);
+  if(!p) return;
+  removeIfExists('markOverlay');
+  const overlay = document.createElement('div');
+  overlay.className = 'mark-overlay'; overlay.id = 'markOverlay';
+  overlay.innerHTML = `
+    <div class="mark-topbar">
+      <span class="link" onclick="cancelMarking()">취소</span>
+      <span>사진 마킹</span>
+      <span class="link" onclick="saveMarking()">저장</span>
+    </div>
+    <div class="mark-canvas-wrap" id="markCanvasWrap"><canvas id="markCanvas"></canvas></div>
+    <div class="mark-toolbar">
+      <div class="mark-tools">
+        <button class="mark-tool active" data-tool="pen" onclick="setMarkTool('pen',this)">${icon('pen',17)}</button>
+        <button class="mark-tool" data-tool="circle" onclick="setMarkTool('circle',this)">${icon('circleTool',17)}</button>
+        <button class="mark-tool" data-tool="arrow" onclick="setMarkTool('arrow',this)">${icon('arrowTool',17)}</button>
+        <button class="mark-tool" data-tool="text" onclick="setMarkTool('text',this)">${icon('textTool',17)}</button>
+        <button class="mark-tool" onclick="undoMarkShape()">${icon('undo',17)}</button>
+      </div>
+      <div class="mark-colors">
+        <div class="mark-color active" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
+        <div class="mark-color" style="background:#e0a72e" onclick="setMarkColor('#e0a72e',this)"></div>
+        <div class="mark-color" style="background:#3fa34d" onclick="setMarkColor('#3fa34d',this)"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const img = new Image();
+  img.onload = ()=> initMarkCanvas(img, photoId);
+  img.src = getPhotoUrl(p);
+}
+function initMarkCanvas(img, photoId){
+  const wrap = document.getElementById('markCanvasWrap');
+  const canvas = document.getElementById('markCanvas');
+  const wrapW = wrap.clientWidth, wrapH = wrap.clientHeight;
+  const imgRatio = img.naturalWidth/img.naturalHeight;
+  const wrapRatio = wrapW/wrapH;
+  let dispW, dispH;
+  if(imgRatio > wrapRatio){ dispW = wrapW; dispH = wrapW/imgRatio; }
+  else { dispH = wrapH; dispW = wrapH*imgRatio; }
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = dispW+'px';
+  canvas.style.height = dispH+'px';
+  canvas.width = Math.round(dispW*dpr);
+  canvas.height = Math.round(dispH*dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  markState = { photoId, img, shapes:[], tool:'pen', color:'#e5484d', canvas, ctx, dispW, dispH, drawing:false, current:null };
+  redrawMarkCanvas();
+  attachMarkTouchHandlers(canvas);
+}
+function redrawMarkCanvas(){
+  const {ctx, img, dispW, dispH, shapes, current} = markState;
+  ctx.clearRect(0,0,dispW,dispH);
+  ctx.drawImage(img, 0,0, dispW, dispH);
+  [...shapes, current].filter(Boolean).forEach(sh=> drawMarkShape(ctx, sh));
+}
+function drawMarkShape(ctx, sh){
+  ctx.strokeStyle = sh.color; ctx.fillStyle = sh.color;
+  ctx.lineWidth = 4; ctx.lineCap='round'; ctx.lineJoin='round';
+  if(sh.type==='pen'){
+    ctx.beginPath();
+    sh.points.forEach((pt,i)=>{ i===0? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y); });
+    ctx.stroke();
+  } else if(sh.type==='circle'){
+    const r = Math.hypot(sh.x2-sh.x1, sh.y2-sh.y1);
+    ctx.beginPath(); ctx.arc(sh.x1, sh.y1, r, 0, Math.PI*2); ctx.stroke();
+  } else if(sh.type==='arrow'){
+    drawMarkArrow(ctx, sh.x1, sh.y1, sh.x2, sh.y2);
+  } else if(sh.type==='text'){
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText(sh.text, sh.x1, sh.y1);
+  }
+}
+function drawMarkArrow(ctx, x1,y1,x2,y2){
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const headLen = 14;
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6), y2-headLen*Math.sin(angle-Math.PI/6));
+  ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6), y2-headLen*Math.sin(angle+Math.PI/6));
+  ctx.closePath(); ctx.fill();
+}
+function getMarkPoint(e, canvas){
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches && e.touches[0] ? e.touches[0] : e;
+  return { x: t.clientX-rect.left, y: t.clientY-rect.top };
+}
+function attachMarkTouchHandlers(canvas){
+  canvas.addEventListener('touchstart', (e)=>{
+    e.preventDefault();
+    if(!markState) return;
+    const pt = getMarkPoint(e, canvas);
+    const {tool, color} = markState;
+    if(tool==='text'){
+      promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
+        if(text && markState){
+          markState.shapes.push({type:'text', text, x1:pt.x, y1:pt.y, color});
+          redrawMarkCanvas();
+        }
+      });
+      return;
+    }
+    markState.drawing = true;
+    if(tool==='pen'){ markState.current = {type:'pen', points:[pt], color}; }
+    else { markState.current = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color}; }
+  }, {passive:false});
+  canvas.addEventListener('touchmove', (e)=>{
+    if(!markState || !markState.drawing) return;
+    e.preventDefault();
+    const pt = getMarkPoint(e, canvas);
+    if(markState.tool==='pen'){ markState.current.points.push(pt); }
+    else { markState.current.x2 = pt.x; markState.current.y2 = pt.y; }
+    redrawMarkCanvas();
+  }, {passive:false});
+  canvas.addEventListener('touchend', ()=>{
+    if(!markState || !markState.drawing) return;
+    markState.drawing = false;
+    if(markState.current) markState.shapes.push(markState.current);
+    markState.current = null;
+  });
+}
+function setMarkTool(tool, el){
+  markState.tool = tool;
+  document.querySelectorAll('.mark-tool[data-tool]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function setMarkColor(color, el){
+  markState.color = color;
+  document.querySelectorAll('.mark-color').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function undoMarkShape(){
+  if(!markState) return;
+  markState.shapes.pop();
+  redrawMarkCanvas();
+}
+function cancelMarking(){
+  markState = null;
+  removeIfExists('markOverlay');
+}
+async function saveMarking(){
+  if(!markState) return;
+  if(markState.shapes.length===0){
+    const ok = await showConfirm({title:'마킹 없음', message:'표시한 내용이 없어요. 그래도 저장할까요?', confirmLabel:'저장'});
+    if(!ok) return;
+  }
+  const comment = await promptText({title:'코멘트 (선택)', placeholder:'예: 잎마름병 의심'});
+  const original = await idbGet('photos', markState.photoId);
+  const canvas = markState.canvas;
+  canvas.toBlob(async (blob)=>{
+    const newId = uid();
+    await idbPut('photos', {
+      id:newId, trialId: original.trialId, date: original.date, createdAt: Date.now(),
+      blob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
+    });
+    toast('마킹한 사진을 저장했어요');
+    removeIfExists('markOverlay');
+    markState = null;
+    if(currentTrialId) renderDetail(currentTrialId);
+  }, 'image/jpeg', 0.9);
+}
+
 function openLightbox(photoId){
   lightboxIndex = allPhotosCache.findIndex(p=>p.id===photoId);
   if(lightboxIndex<0) return;
@@ -1716,7 +1991,7 @@ function renderLightbox(){
     document.body.appendChild(lb);
   }
   lb.innerHTML = `
-    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
+    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}${p.isMarked?' · '+icon('pen',12)+' '+(p.markNote||'마킹됨'):''}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
     <div class="lb-imgwrap">
       ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
       <img src="${url}">
@@ -1725,6 +2000,7 @@ function renderLightbox(){
     <div class="lb-actions">
       <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
       <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
+      <a class="a" onclick="openMarkingEditor('${p.id}')">마킹</a>
       <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
     </div>`;
   attachLightboxSwipe(lb);
