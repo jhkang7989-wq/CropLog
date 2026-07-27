@@ -28,6 +28,7 @@
     --danger:#b5543f;
   }
   *{box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  img{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto;}
   input, textarea{-webkit-user-select:text;user-select:text;}
   html{scroll-behavior:smooth;}
   @keyframes viewFadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
@@ -54,6 +55,7 @@
     -webkit-tap-highlight-color:transparent;
   }
   #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream);}
+  body.scroll-locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
   header.topbar{
     background:var(--cream);color:var(--ink);
     padding:14px 16px;
@@ -350,7 +352,7 @@
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v20 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v21 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1224,7 +1226,7 @@ async function renderDetail(trialId){
       <div class="date-group">
         <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
-          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" src="${getPhotoUrl(p)}"><div class="chk">${icon('check',12)}</div></div>`).join('')}
+          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoUrl(p)}"><div class="chk">${icon('check',12)}</div></div>`).join('')}
         </div>
       </div>`).join('');
   }
@@ -2118,10 +2120,26 @@ async function confirmResetData(){
 
 /* ================= 초기화 ================= */
 /* ================= 모달 열림 시 배경 스크롤 잠금 ================= */
+let _scrollLockY = 0;
 new MutationObserver(()=>{
   const hasModal = !!document.querySelector('.modal-backdrop, .lightbox, .landscape-overlay');
+  const alreadyLocked = document.body.classList.contains('scroll-locked');
+  if(hasModal && !alreadyLocked){
+    _scrollLockY = window.scrollY || window.pageYOffset || 0;
+    document.body.classList.add('scroll-locked');
+    document.body.style.top = `-${_scrollLockY}px`;
+  } else if(!hasModal && alreadyLocked){
+    document.body.classList.remove('scroll-locked');
+    document.body.style.top = '';
+    window.scrollTo(0, _scrollLockY);
+  }
   document.getElementById('app').classList.toggle('modal-lock', hasModal);
 }).observe(document.body, {childList:true});
+
+/* ================= 이미지 롱프레스 시 브라우저 기본 메뉴 차단 ================= */
+document.addEventListener('contextmenu', (e)=>{
+  if(e.target && e.target.tagName==='IMG') e.preventDefault();
+});
 
 openDB().then(async ()=>{ await loadSettings(); await ensurePresetCrops(); go('home'); });
 </script>
