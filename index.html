@@ -389,7 +389,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v24 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v25 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -841,6 +841,11 @@ async function go(view, arg, fromPopstate){
     document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
     document.getElementById('syncEnableSwitch').classList.toggle('on', !!appSettings.syncEnabled);
     document.getElementById('syncPanel').classList.toggle('hidden', !appSettings.syncEnabled);
+    const lastMeta = await idbGet('meta','lastBackupAt');
+    if(lastMeta && lastMeta.value){
+      const statusEl = document.getElementById('syncStatusText');
+      if(statusEl) statusEl.textContent = `마지막 백업: ${new Date(lastMeta.value).toLocaleString('ko-KR')}`;
+    }
   }
   if(view==='newtrial'){ await renderNewTrialForm(); }
   if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
@@ -2424,10 +2429,11 @@ function base64ToBlob(base64, mime){
   for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
   return new Blob([new Uint8Array(byteNumbers)], {type: mime || 'image/jpeg'});
 }
-async function backupToDrive(){
+async function performBackup(silent){
   const statusEl = document.getElementById('syncStatusText');
+  const setStatus = (msg)=>{ if(statusEl) statusEl.textContent = msg; };
   try{
-    statusEl.textContent = '백업 준비 중...';
+    setStatus('백업 준비 중...');
     const token = await getValidToken();
     const [crops, trials, photos, notes, metaAll] = await Promise.all([
       idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta')
@@ -2435,14 +2441,14 @@ async function backupToDrive(){
     const photosOut = [];
     for(let i=0;i<photos.length;i++){
       const p = photos[i];
-      statusEl.textContent = `사진 변환 중 (${i+1}/${photos.length})`;
+      setStatus(`사진 변환 중 (${i+1}/${photos.length})`);
       const b64 = await blobToBase64(p.blob);
       photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
     }
     const backup = { version:1, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut };
     const json = JSON.stringify(backup);
 
-    statusEl.textContent = '업로드 중...';
+    setStatus('업로드 중...');
     const existingId = await findBackupFileId(token);
     const metadata = { name: BACKUP_FILENAME, mimeType:'application/json' };
     const boundary = 'croplog_boundary_' + Date.now();
@@ -2459,12 +2465,39 @@ async function backupToDrive(){
       body
     });
     if(!res.ok) throw new Error('upload failed: '+res.status);
-    statusEl.textContent = `마지막 백업: ${new Date().toLocaleString('ko-KR')}`;
-    toast('백업 완료했어요');
+    await idbPut('meta', {key:'lastBackupAt', value: Date.now()});
+    setStatus(`마지막 백업: ${new Date().toLocaleString('ko-KR')}`);
+    if(silent){ if(appSettings.feedback) rawToast('자동 백업을 완료했어요'); }
+    else { toast('백업 완료했어요'); }
+    return true;
   }catch(e){
     console.error(e);
-    statusEl.textContent = '';
-    toast('백업에 실패했어요. 다시 시도해주세요.');
+    setStatus('');
+    if(!silent) toast('백업에 실패했어요. 다시 시도해주세요.');
+    return false;
+  }
+}
+async function backupToDrive(){ return performBackup(false); }
+async function autoBackupCheckAndRun(){
+  if(!appSettings.syncEnabled) return;
+  if(!ensureTokenClient()) return;
+  const lastMeta = await idbGet('meta','lastBackupAt');
+  const last = lastMeta ? lastMeta.value : 0;
+  const TWELVE_HOURS = 12*60*60*1000;
+  if(Date.now() - last < TWELVE_HOURS) return;
+  try{
+    await new Promise((resolve, reject)=>{
+      gTokenClient.callback = (resp)=>{
+        if(resp.error){ reject(new Error(resp.error)); return; }
+        gAccessToken = resp.access_token;
+        gTokenExpiry = Date.now() + (resp.expires_in*1000 - 60000);
+        resolve();
+      };
+      gTokenClient.requestAccessToken({prompt:''});
+    });
+    await performBackup(true);
+  }catch(e){
+    // 자동(무인) 로그인이 안 되면 조용히 넘어감 — 사용자가 직접 로그인해야 다음 백업이 가능함
   }
 }
 async function restoreFromDrive(){
@@ -2575,7 +2608,14 @@ if('serviceWorker' in navigator){
   });
 }
 
-openDB().then(async ()=>{ await loadSettings(); await ensurePresetCrops(); go('home'); });
+openDB().then(async ()=>{
+  await loadSettings();
+  await ensurePresetCrops();
+  go('home');
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{ autoBackupCheckAndRun(); }, 2000);
+  });
+});
 </script>
 </body>
 </html>
