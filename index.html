@@ -213,6 +213,13 @@
   .mark-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;font-size:13px;font-weight:700;}
   .mark-topbar .link{color:#fff;font-weight:700;}
   .mark-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
+  .mark-canvas-inner{position:relative;}
+  .mte{position:absolute;transform:translate(-50%,-50%);touch-action:none;white-space:nowrap;}
+  .mte-text{font-weight:800;font-family:sans-serif;padding:2px 6px;border:1.5px dashed rgba(255,255,255,0.7);cursor:move;}
+  .mte-btn{position:absolute;top:-14px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
+  .mte-confirm{right:-14px;background:var(--leaf);}
+  .mte-cancel{left:-14px;background:#8a8275;}
+  .mte-resize{position:absolute;right:-8px;bottom:-8px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--leaf);}
   #markCanvas{touch-action:none;border-radius:4px;}
   .mark-toolbar{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0));display:flex;justify-content:space-between;align-items:center;gap:10px;background:#26221c;}
   .mark-tools{display:flex;gap:6px;}
@@ -269,6 +276,7 @@
   .lb-prev{left:10px;}
   .lb-next{right:10px;}
   .lightbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
+  .lightbox .lb-comment{margin:0 14px 10px;padding:10px 14px;background:rgba(229,72,61,0.92);color:#fff;font-size:14px;font-weight:700;border-radius:10px;line-height:1.5;}
   .lightbox .lb-actions{display:flex;gap:6px;padding:12px 12px 18px;}
   .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px 4px;border-radius:9px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
   .lightbox .lb-actions .a.primary{background:var(--leaf);}
@@ -381,7 +389,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v23 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v24 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1820,7 +1828,7 @@ async function openMarkingEditor(photoId){
       <span>사진 마킹</span>
       <span class="link" onclick="saveMarking()">저장</span>
     </div>
-    <div class="mark-canvas-wrap" id="markCanvasWrap"><canvas id="markCanvas"></canvas></div>
+    <div class="mark-canvas-wrap" id="markCanvasWrap"><div class="mark-canvas-inner" id="markCanvasInner"><canvas id="markCanvas"></canvas></div></div>
     <div class="mark-toolbar">
       <div class="mark-tools">
         <button class="mark-tool active" data-tool="pen" onclick="setMarkTool('pen',this)">${icon('pen',17)}</button>
@@ -1843,6 +1851,7 @@ async function openMarkingEditor(photoId){
 }
 function initMarkCanvas(img, photoId){
   const wrap = document.getElementById('markCanvasWrap');
+  const inner = document.getElementById('markCanvasInner');
   const canvas = document.getElementById('markCanvas');
   const wrapW = wrap.clientWidth, wrapH = wrap.clientHeight;
   const imgRatio = img.naturalWidth/img.naturalHeight;
@@ -1851,6 +1860,8 @@ function initMarkCanvas(img, photoId){
   if(imgRatio > wrapRatio){ dispW = wrapW; dispH = wrapW/imgRatio; }
   else { dispH = wrapH; dispW = wrapH*imgRatio; }
   const dpr = window.devicePixelRatio || 1;
+  inner.style.width = dispW+'px';
+  inner.style.height = dispH+'px';
   canvas.style.width = dispW+'px';
   canvas.style.height = dispH+'px';
   canvas.width = Math.round(dispW*dpr);
@@ -1881,7 +1892,8 @@ function drawMarkShape(ctx, sh){
   } else if(sh.type==='arrow'){
     drawMarkArrow(ctx, sh.x1, sh.y1, sh.x2, sh.y2);
   } else if(sh.type==='text'){
-    ctx.font = 'bold 22px sans-serif';
+    ctx.font = `bold ${sh.fontSize||26}px sans-serif`;
+    ctx.textBaseline = 'top';
     ctx.fillText(sh.text, sh.x1, sh.y1);
   }
 }
@@ -1903,16 +1915,11 @@ function getMarkPoint(e, canvas){
 function attachMarkTouchHandlers(canvas){
   canvas.addEventListener('touchstart', (e)=>{
     e.preventDefault();
-    if(!markState) return;
+    if(!markState || pendingTextData) return;
     const pt = getMarkPoint(e, canvas);
     const {tool, color} = markState;
     if(tool==='text'){
-      promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
-        if(text && markState){
-          markState.shapes.push({type:'text', text, x1:pt.x, y1:pt.y, color});
-          redrawMarkCanvas();
-        }
-      });
+      startTextPlacement(pt, color);
       return;
     }
     markState.drawing = true;
@@ -1934,6 +1941,81 @@ function attachMarkTouchHandlers(canvas){
     markState.current = null;
   });
 }
+/* ---- 텍스트 배치(이동/크기조절) ---- */
+let pendingTextData = null;
+function startTextPlacement(pt, color){
+  promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
+    if(!text || !markState) return;
+    pendingTextData = { text, color, x: pt.x, y: pt.y, fontSize: 26 };
+    renderPendingTextEditor();
+  });
+}
+function renderPendingTextEditor(){
+  removeIfExists('markTextEditor');
+  const inner = document.getElementById('markCanvasInner');
+  const el = document.createElement('div');
+  el.className = 'mte'; el.id = 'markTextEditor';
+  el.style.left = pendingTextData.x + 'px';
+  el.style.top = pendingTextData.y + 'px';
+  el.style.color = pendingTextData.color;
+  el.style.fontSize = pendingTextData.fontSize + 'px';
+  el.innerHTML = `
+    <div class="mte-text">${escapeHtml(pendingTextData.text)}</div>
+    <div class="mte-btn mte-confirm" id="mteConfirm">${icon('check',14)}</div>
+    <div class="mte-btn mte-cancel" id="mteCancel">${icon('close',14)}</div>
+    <div class="mte-resize" id="mteResize"></div>`;
+  inner.appendChild(el);
+  document.getElementById('mteConfirm').onclick = confirmPendingText;
+  document.getElementById('mteCancel').onclick = ()=> removePendingTextEditor(true);
+  attachPendingTextGestures(el);
+}
+function attachPendingTextGestures(el){
+  const textEl = el.querySelector('.mte-text');
+  let mode = null; // 'move' | 'resize'
+  let startX=0, startY=0, startLeft=0, startTop=0, startSize=0;
+  textEl.addEventListener('touchstart', (e)=>{
+    e.stopPropagation();
+    mode = 'move';
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    startLeft = parseFloat(el.style.left); startTop = parseFloat(el.style.top);
+  }, {passive:true});
+  document.getElementById('mteResize').addEventListener('touchstart', (e)=>{
+    e.stopPropagation();
+    mode = 'resize';
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    startSize = pendingTextData.fontSize;
+  }, {passive:true});
+  el.addEventListener('touchmove', (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    const t = e.touches[0];
+    if(mode==='move'){
+      const dx = t.clientX-startX, dy = t.clientY-startY;
+      pendingTextData.x = startLeft+dx; pendingTextData.y = startTop+dy;
+      el.style.left = pendingTextData.x+'px'; el.style.top = pendingTextData.y+'px';
+    } else if(mode==='resize'){
+      const dy = t.clientY-startY;
+      pendingTextData.fontSize = Math.max(12, Math.min(90, startSize + dy*0.6));
+      el.style.fontSize = pendingTextData.fontSize+'px';
+    }
+  }, {passive:false});
+  el.addEventListener('touchend', (e)=>{ e.stopPropagation(); mode=null; }, {passive:true});
+}
+function confirmPendingText(){
+  if(!pendingTextData || !markState) return;
+  markState.shapes.push({
+    type:'text', text: pendingTextData.text, color: pendingTextData.color,
+    x1: pendingTextData.x, y1: pendingTextData.y, fontSize: pendingTextData.fontSize
+  });
+  removePendingTextEditor(false);
+  redrawMarkCanvas();
+}
+function removePendingTextEditor(){
+  pendingTextData = null;
+  removeIfExists('markTextEditor');
+}
+
 function setMarkTool(tool, el){
   markState.tool = tool;
   document.querySelectorAll('.mark-tool[data-tool]').forEach(b=>b.classList.remove('active'));
@@ -1991,7 +2073,8 @@ function renderLightbox(){
     document.body.appendChild(lb);
   }
   lb.innerHTML = `
-    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}${p.isMarked?' · '+icon('pen',12)+' '+(p.markNote||'마킹됨'):''}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
+    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
+    ${p.isMarked && p.markNote ? `<div class="lb-comment">${icon('pen',15)} ${escapeHtml(p.markNote)}</div>` : ''}
     <div class="lb-imgwrap">
       ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
       <img src="${url}">
