@@ -493,7 +493,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v49 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v50 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -3137,18 +3137,28 @@ async function deleteLightboxPhoto(){
   if(currentTrialId) renderDetail(currentTrialId);
 }
 function isNativeApp(){
-  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if(typeof window === 'undefined' || !window.Capacitor) return false;
+  try{
+    if(typeof window.Capacitor.isNativePlatform === 'function') return window.Capacitor.isNativePlatform();
+    if(typeof window.Capacitor.getPlatform === 'function') return window.Capacitor.getPlatform() !== 'web';
+  }catch(e){}
+  return true; // Capacitor 객체 자체가 있다는 건 네이티브 앱 안이라는 뜻
 }
 async function nativeShareBlob(blob, filename, title){
   try{
-    const { Filesystem, Share } = window.Capacitor.Plugins;
+    const plugins = window.Capacitor && window.Capacitor.Plugins;
+    if(!plugins || !plugins.Filesystem || !plugins.Share){
+      toast('앱에 저장/공유 기능이 아직 설치 안 됐어요. 안드로이드 스튜디오에서 다시 빌드해주세요.');
+      return false;
+    }
+    const { Filesystem, Share } = plugins;
     const base64 = await blobToBase64(blob);
     const result = await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
     await Share.share({ title: title||filename, url: result.uri, dialogTitle: '공유 / 저장하기' });
     return true;
   }catch(e){
     console.error(e);
-    toast('저장/공유에 실패했어요');
+    toast('저장/공유에 실패했어요: ' + (e && e.message ? e.message : e));
     return false;
   }
 }
