@@ -27,67 +27,38 @@
     --muted:#8a8275;
     --danger:#b5543f;
   }
-  
-  /* ================= [성능 최적화 1] 터치 반응 및 하드웨어 가속 설정 ================= */
-  *{
-    box-sizing:border-box;
-    -webkit-touch-callout:none;
-    -webkit-user-select:none;
-    user-select:none;
-    -webkit-tap-highlight-color:transparent;
-  }
+  *{box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
   img{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto;}
   input, textarea{-webkit-user-select:text;user-select:text;}
   html{scroll-behavior:smooth;}
-
-  /* 버튼 및 클릭 가능 요소 터치 딜레이(300ms) 제거 및 GPU 가속 */
-  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row, .fab {
-    touch-action: manipulation;
-    will-change: transform, opacity;
-    transition: transform .12s cubic-bezier(0, 0, 0.2, 1), opacity .12s ease, background-color .15s ease;
+  @keyframes viewFadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  #app > section:not(.hidden){ animation: viewFadeIn .16s ease-out; }
+  @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes sheetUp{ from{opacity:0; transform:translateY(24px);} to{opacity:1; transform:translateY(0);} }
+  .modal-backdrop{ animation: backdropIn .18s ease; }
+  .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
+  @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
+  .lightbox{ animation: lightboxIn .18s ease; }
+  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
+    transition: transform .12s ease, opacity .12s ease, background-color .15s ease;
   }
-  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active, .fab:active {
-    transform: scale3d(0.96, 0.96, 1);
-    opacity: 0.85;
+  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
+    transform: scale(0.96); opacity:0.85;
   }
   .switch{ transition: background-color .18s ease; }
   .switch .knob{ transition: transform .18s cubic-bezier(.22,.61,.36,1); }
-
-  /* ================= [성능 최적화 2] 3D GPU 변환으로 화면 전환 60fps 유지 ================= */
-  @keyframes viewFadeIn{ 
-    from{ opacity:0; transform:translate3d(0, 6px, 0); } 
-    to{ opacity:1; transform:translate3d(0, 0, 0); } 
-  }
-  #app > section:not(.hidden){ 
-    animation: viewFadeIn .15s cubic-bezier(0, 0, 0.2, 1); 
-    will-change: transform, opacity;
-  }
-  @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
-  @keyframes sheetUp{ 
-    from{ opacity:0; transform:translate3d(0, 30px, 0); } 
-    to{ opacity:1; transform:translate3d(0, 0, 0); } 
-  }
-  .modal-backdrop{ animation: backdropIn .18s ease; }
-  .modal-sheet{ 
-    animation: sheetUp .2s cubic-bezier(.22,.61,.36,1); 
-    will-change: transform, opacity;
-  }
-  @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
-  .lightbox{ animation: lightboxIn .18s ease; }
-
   html,body{
     margin:0;padding:0;height:100%;
     background:var(--cream);
     font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
   }
   #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream);}
   body.scroll-locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
-  
   header.topbar{
     background:var(--cream);color:var(--ink);
     padding:14px 16px;
-    padding-top:env(safe-area-inset-top, 14px); /* 안전영역 지원 */
     display:flex;align-items:center;justify-content:space-between;
     position:sticky;top:0;z-index:10;
     border-bottom:1px solid var(--line);
@@ -98,15 +69,7 @@
   header.topbar .back{background:none;border:none;color:var(--ink);font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:var(--ink);font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  
-  /* ================= [성능 최적화 3] 스크롤 체이닝 방지 ================= */
-  main{
-    flex:1;
-    padding:14px 16px 130px;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior-y:contain;
-  }
+  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
   .bottom-tabbar{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);
     width:100%;max-width:480px;background:var(--paper);border-top:1px solid var(--line);
@@ -128,7 +91,7 @@
   .section-title{font-size:13px;font-weight:800;color:var(--soil);margin:20px 0 10px;display:flex;align-items:center;gap:6px;}
   .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;margin-left:auto;}
 
-  /* ---- 즐겨찾기 ---- */
+  /* ---- 즐겨찾기: 세련된 핀 카드 (컬러 그라데이션 + 리본) ---- */
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);}
@@ -152,12 +115,12 @@
   .sched-item .sched-sub{font-size:11px;color:var(--muted);margin-top:2px;}
   .sched-item .sched-actions{display:flex;gap:6px;flex:0 0 auto;}
   .scv-wrap{flex:1;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
-  .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:8px;}
+  .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:8px;will-change:transform;}
   .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
   .pin-card{
     flex:0 0 auto;width:130px;border-radius:16px;padding:14px 12px;cursor:pointer;
-    position:relative;overflow:hidden;color:#fff;
-    box-shadow:0 6px 16px rgba(60,50,38,0.18);
+    position:relative;overflow:hidden;color:#fff;contain:content;
+    box-shadow:0 3px 8px rgba(60,50,38,0.14);
   }
   .pin-card .ribbon{
     position:absolute;top:8px;right:8px;font-size:11px;background:rgba(255,255,255,0.25);
@@ -167,13 +130,7 @@
   .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;}
   .pin-card .seg{font-size:10px;opacity:0.85;}
 
-  /* ================= [성능 최적화 4] 대량 리스트 / 렌더링 스킵 ================= */
-  .date-group, .recent-item, .list-item {
-    content-visibility: auto;
-    contain-intrinsic-size: 80px;
-  }
-
-  /* ---- 최근 등록 ---- */
+  /* ---- 최근 등록: 클린 리스트 ---- */
   .recent-item{
     background:var(--paper);border:1px solid var(--line);border-radius:12px;
     padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
@@ -274,7 +231,7 @@
   .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
   .xcmp-label .crop-dot{margin-right:4px;}
   .landscape-overlay{position:fixed;inset:0;background:#1e1a15;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;touch-action:none;}
-  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;}
+  .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;will-change:transform;}
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
 
@@ -302,7 +259,7 @@
   .date-head{font-size:12px;font-weight:700;color:var(--leaf-dark);margin-bottom:7px;}
   .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);}
   .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-  .photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;}
+  .photo-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;contain:content;}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
   .photo-thumb .chk{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;}
   .mark-badge{position:absolute;bottom:5px;left:5px;width:20px;height:20px;border-radius:50%;background:#e5484d;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
@@ -339,7 +296,7 @@
   .modal-sheet h3{margin:0 0 14px;font-size:15px;color:var(--soil);}
 
   .lightbox{position:fixed;inset:0;background:#1e1a15;z-index:60;display:flex;flex-direction:column;}
-  .lightbox img{flex:1;object-fit:contain;width:100%;}
+  .lightbox img{flex:1;object-fit:contain;width:100%;will-change:transform;}
   .lb-imgwrap{position:relative;flex:1;display:flex;overflow:hidden;}
   .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;background:rgba(255,255,255,0.14);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;z-index:5;}
   .lb-prev{left:10px;}
@@ -467,7 +424,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v34 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v35 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -908,7 +865,18 @@ function getPhotoUrl(p){
   }
   return photoUrlCache.get(p.id);
 }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+const photoThumbUrlCache = new Map();
+function getPhotoThumbUrl(p){
+  const key = p.id+'_thumb';
+  if(!photoThumbUrlCache.has(key)){
+    photoThumbUrlCache.set(key, URL.createObjectURL(p.thumbBlob || p.blob));
+  }
+  return photoThumbUrlCache.get(key);
+}
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 function timeAgo(ts){
   const diffMs = Date.now()-ts;
   const day = Math.floor(diffMs/86400000);
@@ -975,6 +943,7 @@ async function ensurePresetCrops(){
   }
 }
 function textColorFor(bgHex){
+  // 밝은 배경(흰색, 노란색 등)엔 어두운 글씨, 아니면 흰 글씨
   const c = bgHex.replace('#','');
   const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
   const brightness = (r*299+g*587+b*114)/1000;
@@ -1091,6 +1060,7 @@ function scrollActiveMainTop(){
   if(active) active.scrollTo({top:0, behavior:'smooth'});
 }
 window.addEventListener('popstate', ()=>{
+  // 모달이 열려있으면 뒤로가기로 모달만 닫기
   const openModal = document.querySelector('.modal-backdrop');
   if(openModal){ openModal.remove(); history.pushState({navIndex: navStack.length-1}, ''); return; }
   const lightbox = document.getElementById('lightboxEl');
@@ -1101,6 +1071,7 @@ window.addEventListener('popstate', ()=>{
     const prev = navStack[navStack.length-1];
     go(prev.view, prev.arg, true);
   } else {
+    // 홈 화면에서는 앱이 그냥 꺼지지 않도록 현재 상태 유지
     history.pushState({navIndex:0}, '');
   }
 });
@@ -1135,6 +1106,7 @@ async function renderHome(){
   const trials = await idbGetAll('trials');
   const favIds = (await idbGet('meta','favorites'))?.value || [];
 
+  // 즐겨찾기 - 세련된 컬러 카드
   const favRow = document.getElementById('favRow');
   const favTrials = trials.filter(t=>favIds.includes(t.id));
   if(favTrials.length===0){
@@ -1152,6 +1124,7 @@ async function renderHome(){
     }).join('');
   }
 
+  // 최근 등록 - 클린 리스트 + 컬러 바
   const recentList = document.getElementById('recentList');
   const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
   if(sorted.length===0){
@@ -1195,7 +1168,8 @@ async function renderSearch(){
   const trials = await idbGetAll('trials');
   const matched = trials.filter(t=>{
     const c = cropMap[t.cropId];
-    return t.name.toLowerCase().includes(q) || t.seg.toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q));
+    return t.name.toLowerCase().includes(q) || t.seg.toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q))
+      || (t.region && t.region.toLowerCase().includes(q)) || (t.growerName && t.growerName.toLowerCase().includes(q));
   });
   const list = document.getElementById('searchList');
   if(matched.length===0){
@@ -1558,7 +1532,7 @@ async function deleteTrialConfirm(){
   go('home');
 }
 let allPhotosCache = [];
-let cmpSlots = [null, null];
+let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
 function switchDetailTab(tab){
   if(tab!=='timeline') exitTimelineSelectMode();
   document.getElementById('detailTabTimeline').classList.toggle('active', tab==='timeline');
@@ -1619,7 +1593,7 @@ async function renderDetail(trialId){
       <div class="date-group">
         <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
-          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
+          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoThumbUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
         </div>
       </div>`).join('');
   }
@@ -1648,7 +1622,7 @@ function renderCompare(){
   row.innerHTML = cmpSlots.map((pid,i)=>{
     const p = allPhotosCache.find(x=>x.id===pid);
     return `<div class="xcmp-col">
-      <div class="imgbox cmp-tap" onclick="openComparePicker(${i})">${p? `<img src="${getPhotoUrl(p)}">` : '<div class="cmp-placeholder">탭해서<br>사진 선택</div>'}</div>
+      <div class="imgbox cmp-tap" onclick="openComparePicker(${i})">${p? `<img src="${getPhotoThumbUrl(p)}">` : '<div class="cmp-placeholder">탭해서<br>사진 선택</div>'}</div>
       <div class="xcmp-label">${p? p.date : '-'}</div>
     </div>`;
   }).join('');
@@ -1667,7 +1641,7 @@ function openComparePicker(slotIndex){
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
-            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto(${slotIndex},'${p.id}')"><img loading="lazy" decoding="async" src="${getPhotoUrl(p)}"></div>`).join('')}
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickComparePhoto(${slotIndex},'${p.id}')"><img loading="lazy" decoding="async" src="${getPhotoThumbUrl(p)}"></div>`).join('')}
           </div>
         </div>`).join('')}
     </div>`;
@@ -1686,7 +1660,7 @@ function resetDetailCompare(){
 }
 
 /* ================= 품종 비교 (교차 비교) ================= */
-let xCmpSlots = [null, null];
+let xCmpSlots = [null, null]; // 각 원소: {trialId, photoId} 또는 null, 2~4개
 function renderXCompare(){
   const row = document.getElementById('xCmpSlotsRow');
   row.innerHTML = xCmpSlots.map((_,i)=>`
@@ -1728,7 +1702,7 @@ async function renderXCompareSide(index){
   const [t, p] = await Promise.all([idbGet('trials', state.trialId), idbGet('photos', state.photoId)]);
   if(!t || !p){ imgEl.innerHTML = `<div class="cmp-placeholder">탭해서<br>시교 선택</div>`; labelEl.innerHTML = '탭해서<br>시교 선택'; return; }
   const c = await idbGet('crops', t.cropId);
-  imgEl.innerHTML = `<img src="${getPhotoUrl(p)}">`;
+  imgEl.innerHTML = `<img src="${getPhotoThumbUrl(p)}">`;
   const lines = buildTrialLabelLines(c, t, p);
   labelEl.innerHTML = `<span class="crop-dot" style="background:${c.color}"></span><b>${lines[0]}</b>` + lines.slice(1).map(l=>`<br>${l}`).join('');
 }
@@ -1889,7 +1863,7 @@ async function openScheduleModal(dateStr, scheduleId){
       </div>
       <div class="field">
         <label>방문 대상</label>
-        <input type="text" id="schedTarget" placeholder="시교 검색 또는 직접 입력" value="${existing? escapeHtml(existing.targetText||''):''}" oninput="renderScheduleSuggestions()">
+        <input type="text" id="schedTarget" placeholder="내역 검색 또는 직접 입력" value="${existing? escapeHtml(existing.targetText||''):''}" oninput="renderScheduleSuggestions()">
         <div id="schedSuggestList"></div>
       </div>
       <div class="field">
@@ -1947,7 +1921,7 @@ async function checkTodaySchedules(){
 
 function enableRotatorZoom(rotator){
   let scale=1, startDist=0, startScale=1, lastTap=0;
-  let panX=0, panY=0;
+  let panX=0, panY=0;         // 로컬(회전 전) 좌표계 기준 누적 이동량
   let dragStartX=0, dragStartY=0, dragStartPanX=0, dragStartPanY=0, dragging=false;
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
@@ -1975,6 +1949,7 @@ function enableRotatorZoom(rotator){
       }
     } else if(e.touches.length===1 && dragging){
       e.preventDefault();
+      // 화면(시각) 기준 이동량을 회전 전 로컬 좌표계로 변환 (rotate(90deg) 보정)
       const moveX = e.touches[0].clientX - dragStartX;
       const moveY = e.touches[0].clientY - dragStartY;
       panX = dragStartPanX + moveY;
@@ -2018,25 +1993,26 @@ function openDetailCompareLandscape(){
   showLandscapePhotos(cmpSlots);
 }
 
-/* ================= 비교 저장 ================= */
+/* ================= 비교 저장 (성장비교/품종비교 공용) ================= */
 function buildComparisonCanvas({photoInfos, sharedHeader}){
   return new Promise(async (resolve)=>{
     const n = photoInfos.length;
-    const gap = 14, W = 900;
+    const S = 1.6; // 해상도 배율 (선명도 개선용, 레이아웃 비율은 그대로 유지)
+    const gap = Math.round(14*S), W = Math.round(900*S);
     const cellW = Math.floor((W - gap*(n+1))/n), cellH = cellW;
-    const headerH = sharedHeader.length ? (44 + (sharedHeader.length-1)*28 + 20) : 20;
+    const headerH = sharedHeader.length ? Math.round((44 + (sharedHeader.length-1)*28 + 20)*S) : Math.round(20*S);
     const maxLines = Math.max(...photoInfos.map(p=>p.lines.length), 1);
-    const capH = 16 + maxLines*22;
+    const capH = Math.round((16 + maxLines*22)*S);
     const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = headerH + cellH + capH + 16;
+    canvas.width = W; canvas.height = headerH + cellH + capH + Math.round(16*S);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    let hy = 36;
+    let hy = Math.round(36*S);
     sharedHeader.forEach((line,i)=>{
       ctx.fillStyle = i===0 ? '#3c3226' : '#635b4d';
-      ctx.font = i===0 ? 'bold 26px sans-serif' : 'bold 17px sans-serif';
-      ctx.fillText(line, 20, hy);
-      hy += 28;
+      ctx.font = i===0 ? `bold ${Math.round(26*S)}px sans-serif` : `bold ${Math.round(17*S)}px sans-serif`;
+      ctx.fillText(line, Math.round(20*S), hy);
+      hy += Math.round(28*S);
     });
     for(let i=0;i<n;i++){
       const x = gap + i*(cellW+gap);
@@ -2046,9 +2022,9 @@ function buildComparisonCanvas({photoInfos, sharedHeader}){
         img.onload=()=>{ ctx.drawImage(img, x, y, cellW, cellH); res(); };
         img.src = URL.createObjectURL(photoInfos[i].blob);
       });
-      let ly = y+cellH+22;
-      ctx.fillStyle = '#4a463c'; ctx.font='bold 16px sans-serif';
-      photoInfos[i].lines.forEach(line=>{ ctx.fillText(line, x, ly); ly+=22; });
+      let ly = y+cellH+Math.round(22*S);
+      ctx.fillStyle = '#4a463c'; ctx.font=`bold ${Math.round(16*S)}px sans-serif`;
+      photoInfos[i].lines.forEach(line=>{ ctx.fillText(line, x, ly); ly+=Math.round(22*S); });
     }
     canvas.toBlob(b=>resolve(b), 'image/png');
   });
@@ -2135,25 +2111,30 @@ async function viewSavedComparison(id){
   const overlay = document.createElement('div');
   overlay.className = 'landscape-overlay'; overlay.id='savedCmpViewer';
   overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'stretch';
   overlay.innerHTML = `
-    <div style="position:absolute;top:10px;right:10px;z-index:2;color:#fff;" onclick="removeIfExists('savedCmpViewer')">${icon('close',20)}</div>
+    <div class="lb-top" style="justify-content:flex-end;"><span onclick="removeIfExists('savedCmpViewer')">${icon('close',18)}</span></div>
     <div class="scv-wrap" id="scvWrap"><img id="scvImg" src="${getPhotoUrl(c)}"></div>
-    <div class="lb-actions" style="position:absolute;bottom:0;left:0;right:0;">
+    <div class="lb-actions">
       <a class="a primary" onclick="shareSavedComparison('${id}')">공유</a>
       <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteSavedComparison('${id}','${c.scope}','${c.trialId||''}')">삭제</a>
     </div>`;
   document.body.appendChild(overlay);
-  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) overlay.remove(); });
-  attachSimpleZoomPan(document.getElementById('scvWrap'), document.getElementById('scvImg'));
+  const wrap = document.getElementById('scvWrap');
+  wrap.addEventListener('click', (e)=>{ if(e.target.id==='scvWrap') removeIfExists('savedCmpViewer'); });
+  attachSimpleZoomPan(wrap, document.getElementById('scvImg'));
 }
 function attachSimpleZoomPan(wrap, img){
   if(!wrap || !img) return;
-  img.style.transition = 'transform .12s ease';
+  img.style.transition = 'none';
   wrap.style.touchAction = 'none';
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1, startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
   let mode=null, lastTap=0;
-  function apply(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function apply(smooth){
+    img.style.transition = smooth ? 'transform .12s ease' : 'none';
+    img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  }
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
   wrap.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){ mode='pinch'; startDist=dist(e.touches); startScale=scale; }
@@ -2167,19 +2148,19 @@ function attachSimpleZoomPan(wrap, img){
     if(mode==='pinch' && e.touches.length===2){
       e.preventDefault();
       const d = dist(e.touches);
-      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(); }
+      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(false); }
     } else if(mode==='pan' && e.touches.length===1){
       e.preventDefault();
       const t=e.touches[0];
       panX = startPanX + (t.clientX-startTouchX);
       panY = startPanY + (t.clientY-startTouchY);
-      apply();
+      apply(false);
     }
   }, {passive:false});
   wrap.addEventListener('touchend', ()=>{
     if(mode==='tap'){
       const now = Date.now();
-      if(now-lastTap<300){ scale = scale>1 ? 1 : 2.2; panX=0; panY=0; apply(); }
+      if(now-lastTap<300){ scale = scale>1 ? 1 : 2.2; panX=0; panY=0; apply(true); }
       lastTap = now;
     }
     mode=null;
@@ -2264,7 +2245,7 @@ async function openXPhotoPicker(which, trialId){
         <div class="date-group">
           <div class="date-head">${d}</div>
           <div class="photo-grid">
-            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickXComparePhoto('${which}','${trialId}','${p.id}')"><img loading="lazy" decoding="async" src="${getPhotoUrl(p)}"></div>`).join('')}
+            ${grouped[d].map(p=>`<div class="photo-thumb" onclick="pickXComparePhoto('${which}','${trialId}','${p.id}')"><img loading="lazy" decoding="async" src="${getPhotoThumbUrl(p)}"></div>`).join('')}
           </div>
         </div>`).join('')}
     </div>`;
@@ -2573,7 +2554,7 @@ function attachMarkTouchHandlers(canvas){
     markState.current = null;
   });
 }
-
+/* ---- 텍스트 배치(이동/크기조절) ---- */
 let pendingTextData = null;
 function startTextPlacement(pt, color){
   promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
@@ -2603,7 +2584,7 @@ function renderPendingTextEditor(){
 }
 function attachPendingTextGestures(el){
   const textEl = el.querySelector('.mte-text');
-  let mode = null;
+  let mode = null; // 'move' | 'resize'
   let startX=0, startY=0, startLeft=0, startTop=0, startSize=0;
   textEl.addEventListener('touchstart', (e)=>{
     e.stopPropagation();
@@ -2678,9 +2659,17 @@ async function saveMarking(){
   const canvas = markState.canvas;
   canvas.toBlob(async (blob)=>{
     const newId = uid();
+    // 타임라인 등 목록에 쓸 가벼운 썸네일도 같이 생성
+    const MAX_THUMB = 380;
+    const tscale = MAX_THUMB/Math.max(canvas.width, canvas.height);
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = Math.round(canvas.width*tscale);
+    thumbCanvas.height = Math.round(canvas.height*tscale);
+    thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
     await idbPut('photos', {
       id:newId, trialId: original.trialId, date: original.date, createdAt: Date.now(),
-      blob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
+      blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
     });
     toast('마킹한 사진을 저장했어요');
     removeIfExists('markOverlay');
@@ -2724,15 +2713,18 @@ function attachLightboxGestures(){
   const wrap = document.getElementById('lbImgWrap');
   const img = document.getElementById('lbImg');
   if(!wrap || !img) return;
-  img.style.transition = 'transform .12s ease';
+  img.style.transition = 'none';
   wrap.style.touchAction = 'none';
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1;
   let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
-  let mode=null;
+  let mode=null; // 'pinch' | 'pan' | 'swipe'
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
-  function apply(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
+  function apply(smooth){
+    img.style.transition = smooth ? 'transform .12s ease' : 'none';
+    img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  }
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
 
   wrap.addEventListener('touchstart', (e)=>{
@@ -2757,13 +2749,13 @@ function attachLightboxGestures(){
     if(mode==='pinch' && e.touches.length===2){
       e.preventDefault();
       const d = dist(e.touches);
-      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(); }
+      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(false); }
     } else if(mode==='pan' && e.touches.length===1){
       e.preventDefault();
       const t = e.touches[0];
       panX = startPanX + (t.clientX-startTouchX);
       panY = startPanY + (t.clientY-startTouchY);
-      apply();
+      apply(false);
     }
   }, {passive:false});
 
@@ -2778,7 +2770,7 @@ function attachLightboxGestures(){
         if(now-lastTap<300){
           scale = scale>1 ? 1 : 2.2;
           panX=0; panY=0;
-          apply();
+          apply(true);
         }
         lastTap = now;
       }
@@ -2841,11 +2833,42 @@ function renderPreview(){
     <div class="pv"><img src="${URL.createObjectURL(f)}"><div class="rm" onclick="removePending(${i})">${icon('close',11)}</div></div>`).join('');
 }
 function removePending(i){ pendingFiles.splice(i,1); renderPreview(); }
+async function processUploadFile(file){
+  try{
+    const bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
+    const MAX_FULL = 2000;
+    let fw = bitmap.width, fh = bitmap.height;
+    if(Math.max(fw,fh) > MAX_FULL){
+      const scale = MAX_FULL/Math.max(fw,fh);
+      fw = Math.round(fw*scale); fh = Math.round(fh*scale);
+    }
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = fw; fullCanvas.height = fh;
+    fullCanvas.getContext('2d').drawImage(bitmap, 0, 0, fw, fh);
+    const fullBlob = await new Promise(res=> fullCanvas.toBlob(res, 'image/jpeg', 0.88));
+
+    const MAX_THUMB = 380;
+    const tscale = MAX_THUMB/Math.max(bitmap.width, bitmap.height);
+    const tw = Math.round(bitmap.width*tscale), th = Math.round(bitmap.height*tscale);
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = tw; thumbCanvas.height = th;
+    thumbCanvas.getContext('2d').drawImage(bitmap, 0, 0, tw, th);
+    const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
+
+    if(bitmap.close) bitmap.close();
+    return { blob: fullBlob || file, thumbBlob: thumbBlob || null };
+  }catch(e){
+    // 브라우저가 지원 안 하면 원본 그대로 사용 (회전 보정/썸네일만 생략)
+    return { blob: file, thumbBlob: null };
+  }
+}
 async function savePhotos(){
   if(pendingFiles.length===0){ toast('사진을 먼저 선택해주세요'); return; }
   const date = document.getElementById('uploadDate').value || todayStr();
+  toast('사진을 처리하고 있어요...');
   for(const f of pendingFiles){
-    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob:f, createdAt:Date.now()});
+    const {blob, thumbBlob} = await processUploadFile(f);
+    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt:Date.now()});
   }
   toast(`사진 ${pendingFiles.length}장 저장됐어요`);
   go('detail', currentTrialId);
@@ -2863,6 +2886,7 @@ async function renderReport(trialId){
   reportPhotosCache = photos;
   window._reportMeta = {t, c};
 
+  // 처음 진입 시 아무 사진도 선택돼있지 않은 상태로 시작 (전체선택 버튼으로 직접 고름)
   selectedReportIds = new Set();
   reportMode = 'individual';
   document.getElementById('modeIndividual').classList.add('active');
@@ -2885,7 +2909,7 @@ function renderReportPicker(){
         <div class="photo-grid">
           ${grouped[d].map(p=>`
             <div class="photo-thumb ${selectedReportIds.has(p.id)?'selected':''}" id="rpThumb-${p.id}" onclick="toggleReportPhoto('${p.id}')">
-              <img loading="lazy" decoding="async" src="${getPhotoUrl(p)}">
+              <img loading="lazy" decoding="async" src="${getPhotoThumbUrl(p)}">
               <div class="chk">${icon('check',12)}</div>
             </div>`).join('')}
         </div>
@@ -2949,7 +2973,7 @@ function renderCollagePreview(){
     <div class="report-sub">${c.name} · ${t.seg} · ${sel[0]?.date||'-'}~${sel[sel.length-1]?.date||'-'}</div>
     ${dateBits ? `<div class="report-sub">${dateBits}</div>` : ''}
     <div class="report-row" style="flex-wrap:wrap;">
-      ${sel.map(p=>`<div class="cell" style="flex:0 0 30%;"><img src="${getPhotoUrl(p)}"><div class="cap">${p.date}</div></div>`).join('') || '<p class="empty">선택된 사진이 없어요.</p>'}
+      ${sel.map(p=>`<div class="cell" style="flex:0 0 30%;"><img src="${getPhotoThumbUrl(p)}"><div class="cap">${p.date}</div></div>`).join('') || '<p class="empty">선택된 사진이 없어요.</p>'}
     </div>`;
 }
 async function buildReportCanvas(){
@@ -2960,29 +2984,30 @@ async function buildReportCanvas(){
   const cols = Math.min(4, Math.ceil(Math.sqrt(n)));
   const rows = Math.ceil(n/cols);
   const dateBits = buildDateBitsLine(t);
-  const W = 900, gap=14, headerH= dateBits ? 116 : 90;
+  const S = 1.6;
+  const W = Math.round(900*S), gap=Math.round(14*S), headerH= Math.round((dateBits ? 116 : 90)*S);
   const cellW = Math.floor((W - gap*(cols+1))/cols), cellH = cellW;
-  canvas.width = W; canvas.height = headerH + rows*(cellH+34) + 20;
+  canvas.width = W; canvas.height = headerH + rows*(cellH+Math.round(34*S)) + Math.round(20*S);
   const ctx = canvas.getContext('2d');
   ctx.fillStyle='#f6f4ee'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='#3c3226'; ctx.font='bold 28px sans-serif';
-  ctx.fillText(`${trialTitle(t)} 생육 리포트`, 20, 38);
-  ctx.fillStyle='#8a8275'; ctx.font='16px sans-serif';
-  ctx.fillText(`${c.name} · ${t.seg}`, 20, 66);
-  if(dateBits){ ctx.fillText(dateBits, 20, 92); }
+  ctx.fillStyle='#3c3226'; ctx.font=`bold ${Math.round(28*S)}px sans-serif`;
+  ctx.fillText(`${trialTitle(t)} 생육 리포트`, Math.round(20*S), Math.round(38*S));
+  ctx.fillStyle='#8a8275'; ctx.font=`${Math.round(16*S)}px sans-serif`;
+  ctx.fillText(`${c.name} · ${t.seg}`, Math.round(20*S), Math.round(66*S));
+  if(dateBits){ ctx.fillText(dateBits, Math.round(20*S), Math.round(92*S)); }
 
   for(let i=0;i<sel.length;i++){
     const p = sel[i];
     const row = Math.floor(i/cols), col = i%cols;
     const x = gap + col*(cellW+gap);
-    const y = headerH + row*(cellH+34);
+    const y = headerH + row*(cellH+Math.round(34*S));
     await new Promise(res=>{
       const img = new Image();
       img.onload=()=>{ ctx.drawImage(img, x, y, cellW, cellH); res(); };
       img.src = URL.createObjectURL(p.blob);
     });
-    ctx.fillStyle='#8a8275'; ctx.font='14px sans-serif';
-    ctx.fillText(p.date, x, y+cellH+20);
+    ctx.fillStyle='#8a8275'; ctx.font=`${Math.round(14*S)}px sans-serif`;
+    ctx.fillText(p.date, x, y+cellH+Math.round(20*S));
   }
   return canvas;
 }
@@ -3032,11 +3057,11 @@ async function shareReport(){
 const GOOGLE_CLIENT_ID = '101745594691-bri5ddan44ksiiq72ut2ckb0t501uk8e.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const BACKUP_PREFIX = 'croplog-backup-';
-const MAX_BACKUP_VERSIONS = 5;
+const MAX_BACKUP_VERSIONS = 5; // 오늘/어제/그제/1주일전/1달전, 총 5개 슬롯
 function selectBackupsToKeep(files){
   const now = Date.now();
   const DAY = 86400000;
-  const targetDays = [0, 1, 2, 7, 30];
+  const targetDays = [0, 1, 2, 7, 30]; // 최근일수록 촘촘하게, 오래될수록 듬성듬성
   const parsed = files.map(f=>{
     const ts = parseInt(f.name.replace(BACKUP_PREFIX,'').replace('.json',''), 10);
     return { id:f.id, name:f.name, ts, ageDays: isNaN(ts) ? null : (now-ts)/DAY };
@@ -3093,7 +3118,7 @@ async function getValidToken(){
   return await requestAccessToken(!gAccessToken);
 }
 async function trySilentGoogleSignIn(){
-  if(gAccessToken && Date.now() < gTokenExpiry) return;
+  if(gAccessToken && Date.now() < gTokenExpiry) return; // 이미 유효한 토큰 있음
   if(!ensureTokenClient()) return;
   try{
     await new Promise((resolve, reject)=>{
@@ -3114,7 +3139,9 @@ async function trySilentGoogleSignIn(){
     }catch(e){
       document.getElementById('syncAccountInfo').textContent = '로그인됨';
     }
-  }catch(e){}
+  }catch(e){
+    // 조용한 재로그인 실패 시 그냥 로그인 안 된 상태로 둠 (사용자가 직접 로그인 버튼 눌러야 함)
+  }
 }
 async function startGoogleSignIn(){
   try{
@@ -3175,6 +3202,7 @@ async function performBackup(silent){
       idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
     ]);
 
+    // 안전장치: 로컬에 시교가 하나도 없는데 예전 백업은 있는 상태라면, 실수로 빈 데이터를 덮어쓰는 걸 막음
     if(trials.length===0){
       const existing = await listBackupFiles(token);
       if(existing.length>0){
@@ -3218,6 +3246,7 @@ async function performBackup(silent){
     });
     if(!res.ok) throw new Error('upload failed: '+res.status);
 
+    // 오래된 백업 정리 — 최근 며칠은 촘촘하게, 오래된 건 듬성듬성(오늘/어제/그제/1주일전/1달전) 보관
     const allBackups = await listBackupFiles(token);
     const keepIds = selectBackupsToKeep(allBackups);
     const toDelete = allBackups.filter(f=>!keepIds.has(f.id));
@@ -3256,7 +3285,9 @@ async function autoBackupCheckAndRun(){
       gTokenClient.requestAccessToken({prompt:''});
     });
     await performBackup(true);
-  }catch(e){}
+  }catch(e){
+    // 자동(무인) 로그인이 안 되면 조용히 넘어감 — 사용자가 직접 로그인해야 다음 백업이 가능함
+  }
 }
 async function restoreFromDrive(){
   const statusEl = document.getElementById('syncStatusText');
@@ -3377,7 +3408,8 @@ async function confirmResetData(){
   }
 }
 
-/* ================= [성능 최적화 5] 스크롤 잠금 레이아웃 리플로우 최소화 ================= */
+/* ================= 초기화 ================= */
+/* ================= 모달 열림 시 배경 스크롤 잠금 ================= */
 let _scrollLockY = 0;
 new MutationObserver(()=>{
   const hasModal = !!document.querySelector('.modal-backdrop, .lightbox, .landscape-overlay');
