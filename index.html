@@ -146,6 +146,14 @@
   .pin-card .seg{font-size:10px;opacity:0.85;}
 
   /* ---- 최근 등록: 클린 리스트 ---- */
+  .home-crop-group{margin-bottom:8px;}
+  .home-crop-header{display:flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
+  .home-crop-name{font-weight:800;font-size:13.5px;flex:1;}
+  .home-crop-count{font-size:11px;color:var(--muted);font-weight:700;background:var(--cream);border-radius:10px;padding:2px 9px;}
+  .home-crop-chev{color:var(--muted);transition:transform .15s ease;display:flex;flex:0 0 auto;}
+  .home-crop-chev.open{transform:rotate(90deg);}
+  .home-crop-body{padding-top:8px;}
+  .home-crop-body.hidden{display:none;}
   .recent-item{
     background:var(--paper);border:1px solid var(--line);border-radius:12px;
     padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
@@ -399,7 +407,7 @@
       </div>
 
       <div id="recentSection">
-        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><polyline points="12,8 12,12 15,14"/></svg> 최근 등록 <span class="link" onclick="go('alllist')">전체보기</span></div>
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg> 전체 시교 <span class="link" onclick="go('alllist')">정렬해서 보기</span></div>
         <div id="recentList"></div>
       </div>
     </main>
@@ -486,7 +494,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v46 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v47 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1209,6 +1217,15 @@ function showStorageError(e){
 }
 
 /* ================= 홈 ================= */
+let homeExpandedGroups = new Set();
+function toggleHomeCropGroup(cropId){
+  if(homeExpandedGroups.has(cropId)) homeExpandedGroups.delete(cropId);
+  else homeExpandedGroups.add(cropId);
+  const body = document.getElementById(`homeGroupBody-${cropId}`);
+  const chev = document.getElementById(`homeGroupChev-${cropId}`);
+  if(body) body.classList.toggle('hidden', !homeExpandedGroups.has(cropId));
+  if(chev) chev.classList.toggle('open', homeExpandedGroups.has(cropId));
+}
 async function renderHome(){
   const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
@@ -1233,25 +1250,43 @@ async function renderHome(){
     }).join('');
   }
 
-  // 최근 등록 - 클린 리스트 + 컬러 바
+  // 전체 시교 - 품목별 아코디언
   const recentList = document.getElementById('recentList');
-  const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
-  if(sorted.length===0){
+  if(trials.length===0){
     recentList.innerHTML = '<p class="empty">등록된 시교가 없어요. 우측 하단 + 로 새 시교를 등록해보세요.</p>';
   } else {
-    recentList.innerHTML = sorted.map(t=>{
-      const c = cropMap[t.cropId] || {name:'?',color:'#999'};
-      return `<div class="recent-item" onclick="go('detail','${t.id}')">
-        <div class="bar" style="background:${c.color}"></div>
-        <div class="info">
-          <div class="name">${trialTitle(t)}</div>
-          <div class="sub">${c.name} · ${t.seg}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span class="when">${timeAgo(t.createdAt)}</span>
-          <span class="chev">›</span>
-        </div>
-      </div>`;
+    const grouped = {};
+    trials.forEach(t=>{ (grouped[t.cropId]=grouped[t.cropId]||[]).push(t); });
+    const cropIds = Object.keys(grouped).sort((a,b)=>{
+      const na = (cropMap[a]||{name:''}).name, nb = (cropMap[b]||{name:''}).name;
+      return na.localeCompare(nb, 'ko');
+    });
+    recentList.innerHTML = cropIds.map(cid=>{
+      const c = cropMap[cid] || {name:'?', color:'#999'};
+      const list = grouped[cid].sort((a,b)=>b.createdAt-a.createdAt);
+      const expanded = homeExpandedGroups.has(cid);
+      return `
+        <div class="home-crop-group">
+          <div class="home-crop-header" onclick="toggleHomeCropGroup('${cid}')">
+            <span class="crop-dot" style="background:${c.color}"></span>
+            <span class="home-crop-name">${c.name}</span>
+            <span class="home-crop-count">${list.length}</span>
+            <span class="home-crop-chev ${expanded?'open':''}" id="homeGroupChev-${cid}">${icon('chevRight',14)}</span>
+          </div>
+          <div class="home-crop-body ${expanded?'':'hidden'}" id="homeGroupBody-${cid}">
+            ${list.map(t=>`<div class="recent-item" onclick="go('detail','${t.id}')">
+              <div class="bar" style="background:${c.color}"></div>
+              <div class="info">
+                <div class="name">${trialTitle(t)}</div>
+                <div class="sub">${t.seg}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="when">${timeAgo(t.createdAt)}</span>
+                <span class="chev">›</span>
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>`;
     }).join('');
   }
   document.getElementById('searchInput').value='';
