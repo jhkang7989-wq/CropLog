@@ -95,6 +95,8 @@
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);}
+  .progress-bar-track{width:100%;height:9px;background:var(--line);border-radius:5px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:var(--ink);width:0%;transition:width .2s ease;}
   .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
   .cal-title{font-size:15px;font-weight:800;color:var(--soil);}
   .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px;}
@@ -301,11 +303,11 @@
   .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;background:rgba(255,255,255,0.14);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;z-index:5;}
   .lb-prev{left:10px;}
   .lb-next{right:10px;}
-  .lightbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
-  .lightbox .lb-comment{margin:0 14px 10px;padding:10px 14px;background:rgba(229,72,61,0.92);color:#fff;font-size:14px;font-weight:700;border-radius:10px;line-height:1.5;}
-  .lightbox .lb-actions{display:flex;gap:6px;padding:12px 12px 18px;}
-  .lightbox .lb-actions .a{flex:1;text-align:center;padding:11px 4px;border-radius:9px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
-  .lightbox .lb-actions .a.primary{background:var(--leaf);}
+  .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:#fff;font-size:12px;}
+  .lb-comment{margin:0 14px 10px;padding:10px 14px;background:rgba(229,72,61,0.92);color:#fff;font-size:14px;font-weight:700;border-radius:10px;line-height:1.5;}
+  .lb-actions{display:flex;gap:6px;padding:12px 12px 18px;}
+  .lb-actions .a{flex:1;text-align:center;padding:11px 4px;border-radius:9px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,0.14);color:#fff;}
+  .lb-actions .a.primary{background:var(--leaf);}
 
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--soil);color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
@@ -398,6 +400,15 @@
             <span class="link" onclick="signOutGoogle()">로그아웃</span>
           </div>
           <div id="syncStatusText" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+          <div id="syncProgressBox" class="hidden" style="margin-top:12px;">
+            <div class="progress-bar-track"><div class="progress-bar-fill" id="syncProgressFill"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px;">
+              <span id="syncProgressLabel">준비 중...</span>
+              <span id="syncProgressPct">0%</span>
+            </div>
+            <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0 0;">다른 화면으로 이동해도 계속 진행돼요. 다만 화면을 끄거나 앱을 완전히 종료하면 작업이 멈춰요 — 켜둔 채로 기다려주세요.</p>
+            <button class="btn btn-ghost" style="margin-top:8px;" onclick="cancelSyncOperation()">작업 취소</button>
+          </div>
         </div>
       </div>
 
@@ -424,7 +435,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v35 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v36 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -3192,7 +3203,48 @@ function base64ToBlob(base64, mime){
   for(let i=0;i<byteChars.length;i++) byteNumbers[i] = byteChars.charCodeAt(i);
   return new Blob([new Uint8Array(byteNumbers)], {type: mime || 'image/jpeg'});
 }
+let syncOperationActive = false;
+let syncCancelRequested = false;
+function showSyncProgress(){
+  syncCancelRequested = false;
+  const box = document.getElementById('syncProgressBox');
+  if(box) box.classList.remove('hidden');
+  updateSyncProgress(0, '준비 중...');
+}
+function hideSyncProgress(){
+  const box = document.getElementById('syncProgressBox');
+  if(box) box.classList.add('hidden');
+}
+function updateSyncProgress(pct, label){
+  const fill = document.getElementById('syncProgressFill');
+  const lbl = document.getElementById('syncProgressLabel');
+  const pctEl = document.getElementById('syncProgressPct');
+  const clamped = Math.min(100, Math.max(0, pct));
+  if(fill) fill.style.width = clamped+'%';
+  if(lbl) lbl.textContent = label;
+  if(pctEl) pctEl.textContent = Math.round(clamped)+'%';
+}
+function cancelSyncOperation(){
+  syncCancelRequested = true;
+  toast('취소 요청했어요...');
+}
+function makeProgressTracker(totalSteps, silent){
+  let done = 0;
+  const startTime = Date.now();
+  return function bump(label){
+    done++;
+    const pct = totalSteps>0 ? (done/totalSteps)*100 : 100;
+    const elapsed = Date.now()-startTime;
+    const estTotal = done>0 ? (elapsed/done)*totalSteps : 0;
+    const remainSec = Math.max(0, Math.round((estTotal-elapsed)/1000));
+    const remainLabel = remainSec>=60 ? `약 ${Math.ceil(remainSec/60)}분 남음` : (remainSec>0 ? `약 ${remainSec}초 남음` : '');
+    if(!silent) updateSyncProgress(pct, `${label}${remainLabel? ' · '+remainLabel:''}`);
+  };
+}
 async function performBackup(silent){
+  if(syncOperationActive){ if(!silent) toast('이미 백업이 진행 중이에요'); return false; }
+  syncOperationActive = true;
+  if(!silent) showSyncProgress();
   const statusEl = document.getElementById('syncStatusText');
   const setStatus = (msg)=>{ if(statusEl) statusEl.textContent = msg; };
   try{
@@ -3216,22 +3268,31 @@ async function performBackup(silent){
       }
     }
 
+    const totalSteps = photos.length + comparisons.length + 1; // +1은 업로드 단계
+    const bump = makeProgressTracker(totalSteps, silent);
+
     const photosOut = [];
     for(let i=0;i<photos.length;i++){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
       const p = photos[i];
       setStatus(`사진 변환 중 (${i+1}/${photos.length})`);
       const b64 = await blobToBase64(p.blob);
       photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
+      bump(`사진 변환 중 (${i+1}/${photos.length})`);
     }
     const comparisonsOut = [];
     for(const c of comparisons){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
       const b64 = await blobToBase64(c.blob);
       comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
+      bump('비교 이미지 변환 중');
     }
     const backup = { version:3, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut, schedules };
     const json = JSON.stringify(backup);
 
+    if(syncCancelRequested) throw new Error('사용자가 취소했어요');
     setStatus('업로드 중...');
+    if(!silent) updateSyncProgress(95, '업로드 중...');
     const filename = `${BACKUP_PREFIX}${Date.now()}.json`;
     const metadata = { name: filename, mimeType:'application/json' };
     const boundary = 'croplog_boundary_' + Date.now();
@@ -3245,6 +3306,7 @@ async function performBackup(silent){
       body
     });
     if(!res.ok) throw new Error('upload failed: '+res.status);
+    bump('업로드 완료');
 
     // 오래된 백업 정리 — 최근 며칠은 촘촘하게, 오래된 건 듬성듬성(오늘/어제/그제/1주일전/1달전) 보관
     const allBackups = await listBackupFiles(token);
@@ -3255,6 +3317,7 @@ async function performBackup(silent){
     }
 
     await idbPut('meta', {key:'lastBackupAt', value: Date.now()});
+    if(!silent) updateSyncProgress(100, '완료');
     setStatus(`마지막 백업: ${new Date().toLocaleString('ko-KR')}`);
     if(silent){ if(appSettings.feedback) rawToast('자동 백업을 완료했어요'); }
     else { toast('백업 완료했어요'); }
@@ -3262,8 +3325,12 @@ async function performBackup(silent){
   }catch(e){
     console.error(e);
     setStatus('');
-    if(!silent) toast(`백업에 실패했어요: ${e.message || e}`);
+    if(e.message==='사용자가 취소했어요'){ if(!silent) toast('백업을 취소했어요'); }
+    else if(!silent) toast(`백업에 실패했어요: ${e.message || e}`);
     return false;
+  }finally{
+    syncOperationActive = false;
+    if(!silent) setTimeout(hideSyncProgress, 900);
   }
 }
 async function backupToDrive(){ return performBackup(false); }
@@ -3290,6 +3357,7 @@ async function autoBackupCheckAndRun(){
   }
 }
 async function restoreFromDrive(){
+  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
   const statusEl = document.getElementById('syncStatusText');
   try{
     statusEl.textContent = '백업 목록 확인 중...';
@@ -3333,38 +3401,55 @@ async function confirmRestoreFile(fileId, label){
     confirmLabel:'복원', danger:true
   });
   if(!ok) return;
+  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
+  syncOperationActive = true;
+  showSyncProgress();
   const statusEl = document.getElementById('syncStatusText');
   try{
     statusEl.textContent = '다운로드 중...';
+    updateSyncProgress(5, '다운로드 중...');
     const token = await getValidToken();
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers:{ Authorization:'Bearer '+token }
     });
     if(!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
     const backup = await res.json();
+    if(syncCancelRequested) throw new Error('사용자가 취소했어요');
     statusEl.textContent = '복원 중...';
     await idbClearAll();
-    for(const c of backup.crops||[]) await idbPut('crops', c);
-    for(const t of backup.trials||[]) await idbPut('trials', t);
-    for(const n of backup.notes||[]) await idbPut('notes', n);
-    for(const m of backup.meta||[]) await idbPut('meta', m);
+    const totalSteps = (backup.crops||[]).length + (backup.trials||[]).length + (backup.notes||[]).length + (backup.meta||[]).length + (backup.photos||[]).length + (backup.comparisons||[]).length + (backup.schedules||[]).length + 1;
+    const bump = makeProgressTracker(totalSteps, false);
+    for(const c of backup.crops||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('crops', c); bump('복원 중'); }
+    for(const t of backup.trials||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('trials', t); bump('복원 중'); }
+    for(const n of backup.notes||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('notes', n); bump('복원 중'); }
+    for(const m of backup.meta||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('meta', m); bump('복원 중'); }
     for(const p of backup.photos||[]){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
       const blob = base64ToBlob(p.data, p.mime);
       await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
+      bump(`사진 복원 중`);
     }
     for(const c of backup.comparisons||[]){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
       const blob = base64ToBlob(c.data, c.mime);
       await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
+      bump('비교 이미지 복원 중');
     }
-    for(const s of backup.schedules||[]) await idbPut('schedules', s);
+    for(const s of backup.schedules||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('schedules', s); bump('복원 중'); }
     await loadSettings();
+    bump('완료');
+    updateSyncProgress(100, '완료');
     statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
     toast('복원 완료했어요');
     go('home');
   }catch(e){
     console.error(e);
     statusEl.textContent = '';
-    toast(`복원에 실패했어요: ${e.message || e}`);
+    if(e.message==='사용자가 취소했어요') toast('복원을 취소했어요 — 데이터가 일부만 반영됐을 수 있어요');
+    else toast(`복원에 실패했어요: ${e.message || e}`);
+  }finally{
+    syncOperationActive = false;
+    setTimeout(hideSyncProgress, 900);
   }
 }
 
