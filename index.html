@@ -399,11 +399,29 @@
       </div>
 
       <div id="recentSection">
-        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><polyline points="12,8 12,12 15,14"/></svg> 최근 등록</div>
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><polyline points="12,8 12,12 15,14"/></svg> 최근 등록 <span class="link" onclick="go('alllist')">전체보기</span></div>
         <div id="recentList"></div>
       </div>
     </main>
     <button class="fab" onclick="go('newtrial')">+</button>
+  </section>
+
+  <!-- ===== 전체 시교 목록 ===== -->
+  <section id="view-alllist" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1>전체 시교 목록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="tab-row" style="margin-bottom:14px;">
+        <div class="tab active" id="allListSortRecent" onclick="setAllListSort('recent')">최근순</div>
+        <div class="tab" id="allListSortName" onclick="setAllListSort('name')">가나다순</div>
+        <div class="tab" id="allListSortCrop" onclick="setAllListSort('crop')">품목별</div>
+      </div>
+      <div id="allListCount" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>
+      <div id="allListContent"></div>
+    </main>
   </section>
 
   <!-- ===== 설정 ===== -->
@@ -468,7 +486,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v45 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v46 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1081,7 +1099,7 @@ function openFieldAddressInMaps(idx){
   if(!addr){ toast('등록된 주소가 없어요'); return; }
   window.location.href = `geo:0,0?q=${encodeURIComponent(addr)}`;
 }
-const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar'];
+const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar','alllist'];
 const topLevelViews = ['home','xcompare','settings','calendar'];
 let navStack = [];
 async function go(view, arg, fromPopstate){
@@ -1107,6 +1125,7 @@ async function go(view, arg, fromPopstate){
   if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
   if(view==='xcompare'){ renderXCompare(); }
   if(view==='calendar'){ await renderCalendar(); }
+  if(view==='alllist'){ await renderAllList('recent'); }
 
   const tabbar = document.getElementById('bottomTabbar');
   tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
@@ -1240,6 +1259,55 @@ async function renderHome(){
   document.getElementById('favSection').classList.remove('hidden');
   document.getElementById('recentSection').classList.remove('hidden');
 }
+async function renderAllList(sortMode){
+  sortMode = sortMode || 'recent';
+  const tabIds = { recent:'allListSortRecent', name:'allListSortName', crop:'allListSortCrop' };
+  Object.entries(tabIds).forEach(([m,id])=>{
+    document.getElementById(id).classList.toggle('active', m===sortMode);
+  });
+  const crops = await idbGetAll('crops');
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
+  const trials = await idbGetAll('trials');
+  document.getElementById('allListCount').textContent = `총 ${trials.length}개의 시교`;
+  const contentEl = document.getElementById('allListContent');
+  if(trials.length===0){
+    contentEl.innerHTML = '<p class="empty">등록된 시교가 없어요.</p>';
+    return;
+  }
+  function renderItem(t){
+    const c = cropMap[t.cropId] || {name:'?', color:'#999'};
+    return `<div class="recent-item" onclick="go('detail','${t.id}')">
+      <div class="bar" style="background:${c.color}"></div>
+      <div class="info">
+        <div class="name">${trialTitle(t)}</div>
+        <div class="sub">${c.name} · ${t.seg}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="when">${timeAgo(t.createdAt)}</span>
+        <span class="chev">›</span>
+      </div>
+    </div>`;
+  }
+  if(sortMode==='name'){
+    const sorted = [...trials].sort((a,b)=> trialTitle(a).localeCompare(trialTitle(b), 'ko'));
+    contentEl.innerHTML = sorted.map(renderItem).join('');
+  } else if(sortMode==='crop'){
+    const grouped = {};
+    trials.forEach(t=>{
+      const cname = (cropMap[t.cropId]||{name:'기타'}).name;
+      (grouped[cname]=grouped[cname]||[]).push(t);
+    });
+    const cropNames = Object.keys(grouped).sort((a,b)=>a.localeCompare(b,'ko'));
+    contentEl.innerHTML = cropNames.map(cname=>`
+      <div class="section-title" style="margin-top:14px;">${cname} <span style="font-weight:400;color:var(--muted);font-size:11px;">(${grouped[cname].length})</span></div>
+      ${grouped[cname].sort((a,b)=>b.createdAt-a.createdAt).map(renderItem).join('')}
+    `).join('');
+  } else {
+    const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt);
+    contentEl.innerHTML = sorted.map(renderItem).join('');
+  }
+}
+function setAllListSort(mode){ renderAllList(mode); }
 
 async function renderSearch(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
