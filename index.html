@@ -351,7 +351,7 @@
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
   .detail-dates{font-size:12.5px;color:var(--ink);margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:10px;padding:2px 14px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
-  .dd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}
+  .dd-row{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}
   .dd-row+.dd-row{border-top:1px solid var(--line);}
   .dd-row b{color:var(--ink);font-weight:800;font-size:12.5px;}
   .detail-address{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);font-weight:700;margin-bottom:8px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:10px;padding:9px 8px 9px 14px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
@@ -468,7 +468,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v43 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v44 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -539,7 +539,7 @@
       </div>
       <div class="help-card">
         <div class="help-title">⑫ 시교별 PDF 리포트</div>
-        <p>타임라인 탭 상단의 "PDF 내보내기"를 누르면 그 시교의 정보·전체 사진·메모가 담긴 인쇄용 화면이 새 창으로 열려요. "인쇄 / PDF로 저장" 버튼을 누르고 인쇄 대상을 "PDF로 저장"으로 선택하면 파일로 저장돼요.</p>
+        <p>타임라인 탭 상단의 "PDF 내보내기"를 누르면 그 시교의 정보·전체 사진·메모가 담긴 PDF 파일이 바로 다운로드돼요. 인쇄 화면을 거치지 않고 곧바로 파일로 저장돼요.</p>
       </div>
     </main>
   </section>
@@ -3077,21 +3077,92 @@ async function savePhotos(){
 }
 
 /* ================= PDF 내보내기 (시교별) ================= */
+/* ---- 순수 JS PDF 생성기 (외부 라이브러리 없이, 오프라인 지원) ---- */
+function buildPdfBytes(pages){
+  const enc = new TextEncoder();
+  const chunks = [];
+  let offset = 0;
+  const objOffsets = {};
+  function writeStr(s){ const b = enc.encode(s); chunks.push(b); offset += b.length; }
+  function writeBytes(b){ chunks.push(b); offset += b.length; }
+  function beginObj(num){ objOffsets[num] = offset; writeStr(`${num} 0 obj\n`); }
+  function endObj(){ writeStr('endobj\n'); }
+
+  const N = pages.length;
+  const catalogNum = 1, pagesNum = 2;
+  let nextNum = 3;
+  const pageNums=[], imgNums=[], contentNums=[];
+  for(let i=0;i<N;i++){ pageNums.push(nextNum++); imgNums.push(nextNum++); contentNums.push(nextNum++); }
+  const totalObjs = nextNum - 1;
+
+  writeStr('%PDF-1.4\n');
+  beginObj(catalogNum); writeStr(`<< /Type /Catalog /Pages ${pagesNum} 0 R >>\n`); endObj();
+  beginObj(pagesNum); writeStr(`<< /Type /Pages /Kids [${pageNums.map(n=>n+' 0 R').join(' ')}] /Count ${N} >>\n`); endObj();
+
+  const PAGE_W = 595, PAGE_H = 842;
+  for(let i=0;i<N;i++){
+    const p = pages[i];
+    beginObj(pageNums[i]);
+    writeStr(`<< /Type /Page /Parent ${pagesNum} 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /XObject << /Im0 ${imgNums[i]} 0 R >> >> /Contents ${contentNums[i]} 0 R >>\n`);
+    endObj();
+    beginObj(imgNums[i]);
+    writeStr(`<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`);
+    writeBytes(p.jpeg);
+    writeStr('\nendstream\n');
+    endObj();
+    const content = `q\n${PAGE_W} 0 0 ${PAGE_H} 0 0 cm\n/Im0 Do\nQ`;
+    beginObj(contentNums[i]);
+    writeStr(`<< /Length ${content.length} >>\nstream\n${content}\nendstream\n`);
+    endObj();
+  }
+
+  const xrefOffset = offset;
+  writeStr(`xref\n0 ${totalObjs+1}\n`);
+  writeStr('0000000000 65535 f \n');
+  for(let n=1;n<=totalObjs;n++) writeStr(`${String(objOffsets[n]).padStart(10,'0')} 00000 n \n`);
+  writeStr(`trailer\n<< /Size ${totalObjs+1} /Root ${catalogNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+  const total = chunks.reduce((s,c)=>s+c.length,0);
+  const result = new Uint8Array(total);
+  let pos = 0;
+  for(const c of chunks){ result.set(c, pos); pos += c.length; }
+  return result;
+}
+function loadImageFromBlob(blob){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(blob);
+  });
+}
+function drawImageContain(ctx, img, x, y, w, h){
+  const ir = img.width/img.height, br = w/h;
+  let dw=w, dh=h, dx=x, dy=y;
+  if(ir > br){ dh = w/ir; dy = y + (h-dh)/2; }
+  else { dw = h*ir; dx = x + (w-dw)/2; }
+  ctx.fillStyle = '#f6f4ee'; ctx.fillRect(x,y,w,h);
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+function wrapPdfText(ctx, text, maxWidth){
+  const words = text.split('');
+  let lines = [], cur = '';
+  for(const ch of words){
+    const test = cur + ch;
+    if(ctx.measureText(test).width > maxWidth && cur){ lines.push(cur); cur = ch; }
+    else cur = test;
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
 async function exportTrialPdf(){
   const t = await idbGet('trials', currentTrialId);
   const c = await idbGet('crops', t.cropId);
   const photos = (await idbGetAllByIndex('photos','trialId',currentTrialId)).sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt-b.createdAt);
   const notes = (await idbGetAllByIndex('notes','trialId',currentTrialId)).sort((a,b)=>a.date.localeCompare(b.date));
 
-  const win = window.open('', '_blank');
-  if(!win){ toast('팝업이 차단됐어요. 팝업 허용 후 다시 시도해주세요'); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>PDF 준비 중...</title></head><body style="font-family:sans-serif;padding:40px;color:#8a8275;">PDF 리포트를 준비하고 있어요, 잠시만요...</body></html>`);
-
-  const photoDataUrls = [];
-  for(const p of photos){
-    const url = await blobToDataUrl(p.blob);
-    photoDataUrls.push({ date:p.date, url, isMarked:p.isMarked, markNote:p.markNote });
-  }
+  toast('PDF 생성 중이에요, 잠시만요...');
 
   const infoLines = [];
   if(t.sowDate) infoLines.push(`파종일: ${t.sowDate}`);
@@ -3100,44 +3171,110 @@ async function exportTrialPdf(){
   const addresses = t.fieldAddresses || (t.fieldAddress ? [t.fieldAddress] : []);
   if(addresses.length) infoLines.push(`밭주소: ${addresses.join(' / ')}`);
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<title>${escapeHtml(trialTitle(t))} 리포트</title>
-<style>
-  body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#2c2620;padding:28px;max-width:820px;margin:0 auto;}
-  h1{font-size:23px;margin:0 0 4px;}
-  .sub{font-size:13px;color:#8a8275;margin-bottom:16px;}
-  .info-box{background:#f6f4ee;border:1px solid #e2ddd0;border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.8;margin-bottom:26px;}
-  .section-title{font-size:16px;font-weight:700;margin:30px 0 14px;border-bottom:2px solid #2c2620;padding-bottom:6px;}
-  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-  .photo-cell{break-inside:avoid;}
-  .photo-cell img{width:100%;border-radius:6px;border:1px solid #e2ddd0;display:block;}
-  .photo-cell .cap{font-size:11px;color:#8a8275;margin-top:4px;text-align:center;}
-  .note-item{border-bottom:1px solid #e2ddd0;padding:9px 0;font-size:13px;}
-  .note-date{font-weight:700;margin-right:10px;}
-  .print-btn{margin-bottom:24px;padding:11px 20px;font-size:14px;font-weight:700;background:#2c2620;color:#fff;border:none;border-radius:8px;cursor:pointer;}
-  .empty{font-size:13px;color:#8a8275;}
-  @media print{ .no-print{display:none;} body{padding:0;} }
-</style>
-</head>
-<body>
-  <button class="print-btn no-print" onclick="window.print()">인쇄 / PDF로 저장</button>
-  <h1>${escapeHtml(trialTitle(t))}</h1>
-  <div class="sub">${escapeHtml(c ? c.name : '')} · ${escapeHtml(t.seg)}</div>
-  ${infoLines.length ? `<div class="info-box">${infoLines.map(l=>escapeHtml(l)).join('<br>')}</div>` : ''}
-  <div class="section-title">촬영 사진 (${photoDataUrls.length}장)</div>
-  <div class="photo-grid">
-    ${photoDataUrls.length ? photoDataUrls.map(p=>`<div class="photo-cell"><img src="${p.url}"><div class="cap">${p.date}${p.isMarked?' · 마킹':''}</div></div>`).join('') : '<p class="empty">등록된 사진이 없어요.</p>'}
-  </div>
-  ${notes.length ? `
-  <div class="section-title">메모</div>
-  ${notes.map(n=>`<div class="note-item"><span class="note-date">${n.date}</span>${escapeHtml(n.text)}</div>`).join('')}
-  ` : ''}
-</body></html>`;
+  let loadedPhotos = [];
+  try{
+    for(const p of photos) loadedPhotos.push({ img: await loadImageFromBlob(p.blob), date:p.date, isMarked:p.isMarked });
+  }catch(e){ console.error(e); }
 
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  const SCALE = 2;
+  const PAGE_W = 595*SCALE, PAGE_H = 842*SCALE;
+  const MARGIN = 36*SCALE, GAP = 16*SCALE, COLS = 2;
+  const cellW = (PAGE_W - MARGIN*2 - GAP*(COLS-1))/COLS;
+  const cellH = cellW;
+  const capH = 20*SCALE;
+  const rowH = cellH + capH + GAP;
+
+  const pageCanvases = [];
+  let photoIdx = 0, pageNum = 0;
+  do{
+    const canvas = document.createElement('canvas');
+    canvas.width = PAGE_W; canvas.height = PAGE_H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
+    let y = MARGIN;
+    if(pageNum===0){
+      ctx.fillStyle = '#2c2620'; ctx.font = `bold ${26*SCALE}px sans-serif`;
+      ctx.fillText(trialTitle(t), MARGIN, y + 24*SCALE);
+      y += 38*SCALE;
+      ctx.fillStyle = '#8a8275'; ctx.font = `${14*SCALE}px sans-serif`;
+      ctx.fillText(`${c?c.name:''} · ${t.seg}`, MARGIN, y);
+      y += 24*SCALE;
+      if(infoLines.length){
+        const boxH = infoLines.length*(21*SCALE) + 14*SCALE;
+        ctx.fillStyle = '#f6f4ee'; ctx.fillRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
+        ctx.strokeStyle = '#e2ddd0'; ctx.lineWidth = 1; ctx.strokeRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
+        let iy = y + 19*SCALE;
+        ctx.fillStyle = '#2c2620'; ctx.font = `${12.5*SCALE}px sans-serif`;
+        infoLines.forEach(l=>{ ctx.fillText(l, MARGIN+14*SCALE, iy); iy += 21*SCALE; });
+        y += boxH + 18*SCALE;
+      }
+      ctx.fillStyle = '#2c2620'; ctx.font = `bold ${15*SCALE}px sans-serif`;
+      ctx.fillText(`촬영 사진 (${loadedPhotos.length}장)`, MARGIN, y);
+      y += 16*SCALE;
+    }
+    const gridTop = y + GAP;
+    const availH = PAGE_H - MARGIN - gridTop;
+    const rowsThisPage = Math.max(1, Math.floor((availH+GAP)/rowH));
+    for(let r=0; r<rowsThisPage && photoIdx<loadedPhotos.length; r++){
+      for(let col=0; col<COLS && photoIdx<loadedPhotos.length; col++){
+        const ph = loadedPhotos[photoIdx];
+        const x = MARGIN + col*(cellW+GAP), yy = gridTop + r*rowH;
+        drawImageContain(ctx, ph.img, x, yy, cellW, cellH);
+        ctx.strokeStyle = '#e2ddd0'; ctx.lineWidth = 1; ctx.strokeRect(x,yy,cellW,cellH);
+        ctx.fillStyle = '#8a8275'; ctx.font = `${10.5*SCALE}px sans-serif`; ctx.textAlign = 'center';
+        ctx.fillText(ph.date + (ph.isMarked?' · 마킹':''), x+cellW/2, yy+cellH+15*SCALE);
+        ctx.textAlign = 'left';
+        photoIdx++;
+      }
+    }
+    pageCanvases.push(canvas);
+    pageNum++;
+  } while(photoIdx < loadedPhotos.length);
+
+  if(notes.length){
+    let noteIdx = 0;
+    while(noteIdx < notes.length){
+      const canvas = document.createElement('canvas');
+      canvas.width = PAGE_W; canvas.height = PAGE_H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
+      let y = MARGIN + 18*SCALE;
+      ctx.fillStyle = '#2c2620'; ctx.font = `bold ${17*SCALE}px sans-serif`;
+      ctx.fillText('메모', MARGIN, y);
+      y += 30*SCALE;
+      const maxTextW = PAGE_W - MARGIN*2 - 90*SCALE;
+      while(noteIdx < notes.length && y < PAGE_H - MARGIN){
+        const n = notes[noteIdx];
+        ctx.fillStyle = '#2c2620'; ctx.font = `bold ${12.5*SCALE}px sans-serif`;
+        ctx.fillText(n.date, MARGIN, y);
+        ctx.font = `${12.5*SCALE}px sans-serif`;
+        const lines = wrapPdfText(ctx, n.text||'', maxTextW);
+        lines.forEach((line,li)=>{ ctx.fillText(line, MARGIN + 82*SCALE, y + li*(18*SCALE)); });
+        y += Math.max(1,lines.length)*(18*SCALE) + 12*SCALE;
+        noteIdx++;
+      }
+      pageCanvases.push(canvas);
+    }
+  }
+
+  const pages = [];
+  for(const canvas of pageCanvases){
+    const blob = await new Promise(res=> canvas.toBlob(res, 'image/jpeg', 0.86));
+    const jpeg = new Uint8Array(await blob.arrayBuffer());
+    pages.push({ jpeg, w: canvas.width, h: canvas.height });
+  }
+
+  try{
+    const pdfBytes = buildPdfBytes(pages);
+    const pdfBlob = new Blob([pdfBytes], {type:'application/pdf'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(pdfBlob);
+    a.download = `${trialTitle(t)}_리포트.pdf`;
+    a.click();
+    toast('PDF 파일을 저장했어요');
+  }catch(e){
+    showStorageError(e);
+  }
 }
 
 /* ================= 리포트 공유 ================= */
