@@ -214,6 +214,16 @@
   .btn-ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink);}
   .btn-danger{background:#fbeceA;color:var(--danger);}
   .btn-row{display:flex;gap:8px;}
+  .timeline-action-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
+  .timeline-action-btn{
+    background:var(--paper);border:1px solid var(--line);border-radius:13px;
+    padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;
+    cursor:pointer;font-size:10.5px;font-weight:700;color:var(--ink);text-align:center;line-height:1.3;
+    box-shadow:0 1px 3px rgba(60,50,38,0.06);
+  }
+  .timeline-action-btn svg{color:var(--leaf);}
+  .timeline-action-btn.primary{background:var(--leaf);color:#fff;box-shadow:0 3px 8px rgba(47,93,86,0.28);}
+  .timeline-action-btn.primary svg{color:#fff;}
   .btn-row .btn{flex:1;}
 
   .tab-row{display:flex;gap:6px;margin-bottom:14px;}
@@ -335,8 +345,12 @@
   .settings-row:last-child{border-bottom:none;}
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
-  .detail-dates{font-size:12.5px;color:var(--ink);font-weight:700;margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 12px;line-height:1.6;}
-  .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;margin-bottom:8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 8px 8px 12px;}
+  .detail-dates{font-size:12.5px;color:var(--ink);margin:-8px 0 14px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:10px;padding:2px 14px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
+  .dd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}
+  .dd-row+.dd-row{border-top:1px solid var(--line);}
+  .dd-row b{color:var(--ink);font-weight:800;font-size:12.5px;}
+  .detail-address{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);font-weight:700;margin-bottom:8px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:10px;padding:9px 8px 9px 14px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
+  .detail-address .action{width:32px;height:32px;border-radius:50%;background:rgba(47,93,86,0.08);color:var(--leaf);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
   #detailAddressList{margin-top:-8px;}
   #detailAddressList:empty{margin-top:0;}
   .addr-input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -405,7 +419,7 @@
           <button class="btn btn-dark" onclick="startGoogleSignIn()">구글 계정으로 로그인</button>
         </div>
         <div id="syncSignedInBox" class="hidden">
-          <div class="detail-dates" id="syncAccountInfo" style="margin-bottom:10px;"></div>
+          <div class="detail-dates" id="syncAccountInfo" style="margin-bottom:10px;padding:10px 14px;"></div>
           <div class="btn-row">
             <button class="btn btn-ghost" onclick="restoreFromDrive()">복원하기</button>
             <button class="btn btn-primary" onclick="backupToDrive()">지금 백업하기</button>
@@ -449,7 +463,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v40 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v42 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -476,19 +490,19 @@
     <main>
       <div class="help-card">
         <div class="help-title">① 시교 등록하기</div>
-        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명을 입력하면 등록돼요. 파종일·정식일·대비종·밭 주소는 알면 적어두면 좋지만 몰라도 등록 자체는 가능해요.</p>
+        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명·지역·성함을 입력하면 등록돼요. 파종일·정식일·대비종·밭 주소(최대 5개)는 몰라도 등록 자체는 가능해요. 홈 검색은 제품명·SEG·지역·성함까지 다 찾아줘요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">② 사진 등록하기</div>
-        <p>시교 상세 화면 "타임라인" 탭에서 <b>사진 추가</b>를 누르면 사진첩에서 고르거나 바로 촬영할 수 있어요. 촬영일자는 자동으로 오늘 날짜가 들어가요.</p>
+        <p>시교 상세의 "타임라인" 탭 맨 위 <b>사진 추가</b>를 누르면 사진첩에서 고르거나 바로 촬영할 수 있어요. 촬영일자는 자동으로 오늘 날짜(한국 시간 기준)가 들어가고, 세로로 찍은 사진의 회전도 자동으로 바로잡혀 저장돼요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">③ 성장 비교 / 품종 비교</div>
-        <p>시교 상세의 "성장비교" 탭에서는 같은 시교의 사진 2~4장을 골라 나란히 비교할 수 있고, 하단 <b>비교</b> 탭에서는 품목·품종이 달라도 아무 시교끼리나 골라 비교할 수 있어요. "가로로 크게 보기"를 누르면 화면 가득 확대해서 볼 수 있고, 손가락으로 확대/이동도 가능해요.</p>
+        <p>시교 상세의 "성장비교" 탭에서는 같은 시교의 사진 2~4장을, 하단 "비교" 탭에서는 품목·품종 상관없이 아무 시교끼리나 골라 비교할 수 있어요. "가로로 크게 보기"로 확대·이동해서 볼 수 있고, "이 비교 저장하기"를 누르면 지금 비교 화면을 한 장의 이미지로 합쳐 따로 모아둘 수 있어요 (저장된 항목은 길게 눌러 삭제).</p>
       </div>
       <div class="help-card">
         <div class="help-title">④ 사진 마킹하기</div>
-        <p>사진을 탭해서 크게 연 뒤 <b>마킹</b>을 누르면 병해충 발생 부위 등에 원·화살표·선·글자로 표시할 수 있어요. 마킹한 사진은 원본과 별도로 저장되고, 짧은 코멘트도 같이 남길 수 있어요.</p>
+        <p>사진을 탭해서 크게 연 뒤 <b>마킹</b>을 누르면 병해충 발생 부위 등에 원·화살표·선·글자로 표시할 수 있어요. 원·화살표·글자는 그린 뒤에도 손잡이로 위치와 크기를 조절하고 확인 버튼을 눌러야 최종 반영돼요. 마킹한 사진은 원본과 별도로 저장되고, 짧은 코멘트도 남길 수 있어요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">⑤ 사진 여러 장 한번에 삭제</div>
@@ -500,23 +514,27 @@
       </div>
       <div class="help-card">
         <div class="help-title">⑦ 리포트 공유하기</div>
-        <p>원하는 사진을 골라 카톡 등으로 공유할 수 있어요. 한 장씩 개별 전송하거나, 여러 장을 한 이미지로 합친 콜라주로도 보낼 수 있어요.</p>
+        <p>처음엔 아무 사진도 선택 안 된 상태로 시작해요. 원하는 사진을 직접 고르거나 전체선택한 뒤, 한 장씩 개별 전송하거나 여러 장을 한 이미지(콜라주)로 합쳐 공유할 수 있어요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">⑧ 밭 주소로 바로 길찾기</div>
-        <p>시교 상세에 밭 주소를 등록해두면, 주소 옆 복사 버튼으로 다른 앱에 붙여넣거나 지도 아이콘으로 바로 지도앱을 열어 길찾기 할 수 있어요.</p>
+        <p>시교 상세에 밭 주소를 등록해두면(최대 5개), 각 주소 옆 복사 버튼으로 다른 앱에 붙여넣거나 지도 아이콘으로 바로 지도앱을 열어 길찾기 할 수 있어요.</p>
       </div>
       <div class="help-card">
-        <div class="help-title">⑨ 구글 동기화 (백업/복원)</div>
-        <p>설정에서 구글 동기화를 켜고 로그인하면, "지금 백업하기"로 이 기기의 모든 데이터를 구글 드라이브에 저장할 수 있어요. 다른 기기에서는 로그인 후 "복원하기"로 그대로 불러올 수 있어요.</p>
+        <div class="help-title">⑨ 작황조사 캘린더</div>
+        <p>하단 "캘린더" 탭에서 방문 일정을 관리해요. 날짜를 눌러 일정을 등록할 수 있고, 대상은 등록된 시교를 검색해서 고르거나 직접 입력할 수 있어요. 좌우로 스와이프하면 월이 넘어가고, 날짜 칸엔 그날 일정이 최대 3개까지 표시돼요. "캘린더에 추가"를 누르면 구글 캘린더에도 저장해서 그쪽 알림을 받을 수 있고, 설정에서 "오늘 방문 예정 일정 알림"을 켜두면 앱을 열 때 오늘 일정 개수를 알려줘요.</p>
       </div>
       <div class="help-card">
-        <div class="help-title">⑩ 데이터 내보내기 (CSV)</div>
-        <p>설정의 "전체 시교 목록 CSV로 내보내기"를 누르면 등록된 모든 시교 정보가 표 파일로 다운로드돼요. 엑셀에서 바로 열어볼 수 있어요.</p>
+        <div class="help-title">⑩ 구글 동기화 (백업/복원)</div>
+        <p>설정에서 구글 동기화를 켜고 로그인하면 "지금 백업하기"로 이 기기의 모든 데이터를 구글 드라이브에 저장할 수 있어요. 진행률과 남은 시간이 표시되고, 중간에 취소도 가능해요. 백업은 최근 5개 시점(오늘·어제·그제·1주일전·1달전)으로 보관되고, "복원하기"에서 원하는 시점을 골라 불러올 수 있어요.</p>
       </div>
       <div class="help-card">
-        <div class="help-title">⑪ 시교별 PDF 리포트</div>
-        <p>타임라인 탭의 "PDF로 내보내기"를 누르면 그 시교의 정보·전체 사진·메모가 담긴 인쇄용 화면이 새 창으로 열려요. "인쇄 / PDF로 저장" 버튼을 누르고 인쇄 대상을 "PDF로 저장"으로 선택하면 파일로 저장돼요.</p>
+        <div class="help-title">⑪ 데이터 내보내기 (CSV)</div>
+        <p>설정의 "전체 시교 목록 CSV로 내보내기"를 누르면 품목·SEG·제품명·지역·성함 등 등록된 모든 시교 정보가 표 파일로 다운로드돼요. 엑셀에서 바로 열어볼 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑫ 시교별 PDF 리포트</div>
+        <p>타임라인 탭 상단의 "PDF 내보내기"를 누르면 그 시교의 정보·전체 사진·메모가 담긴 인쇄용 화면이 새 창으로 열려요. "인쇄 / PDF로 저장" 버튼을 누르고 인쇄 대상을 "PDF로 저장"으로 선택하면 파일로 저장돼요.</p>
       </div>
     </main>
   </section>
@@ -577,7 +595,7 @@
       </div>
       <div class="field">
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="text" id="ntReferenceVariety" placeholder="예: 기존 청양고추">
+        <input type="text" id="ntReferenceVariety" placeholder="예: 칼라탄">
       </div>
       <div class="field">
         <label style="display:flex;align-items:center;">밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span> <span class="link" style="margin-left:auto;" onclick="addAddressField('nt')">+ 주소 추가</span></label>
@@ -609,11 +627,22 @@
       </div>
 
       <div id="detailPanelTimeline">
+        <div class="timeline-action-row">
+          <div class="timeline-action-btn primary" onclick="go('upload', currentTrialId)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+            <span>사진 추가</span>
+          </div>
+          <div class="timeline-action-btn" onclick="go('report', currentTrialId)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/></svg>
+            <span>리포트 공유</span>
+          </div>
+          <div class="timeline-action-btn" onclick="exportTrialPdf()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v3h3"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            <span>PDF 내보내기</span>
+          </div>
+        </div>
         <div class="section-title">촬영 타임라인</div>
         <div id="timelineAll"></div>
-        <button class="btn btn-primary" style="margin-top:6px;" onclick="go('upload', currentTrialId)"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg> 사진 추가</button>
-        <button class="btn btn-ghost" style="margin-top:10px;" onclick="go('report', currentTrialId)"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/></svg> 리포트 공유</button>
-        <button class="btn btn-ghost" style="margin-top:10px;" onclick="exportTrialPdf()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v3h3"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> PDF로 내보내기</button>
       </div>
 
       <div id="detailPanelMemo" class="hidden">
@@ -1509,7 +1538,7 @@ async function openTrialEditModal(){
       </div>
       <div class="field">
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
-        <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 기존 청양고추">
+        <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 칼라탄">
       </div>
       <div class="field">
         <label style="display:flex;align-items:center;">밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span> <span class="link" style="margin-left:auto;" onclick="addAddressField('editTrial')">+ 주소 추가</span></label>
@@ -1581,12 +1610,14 @@ async function renderDetail(trialId){
   const c = await idbGet('crops', t.cropId);
   document.getElementById('detailTitle').textContent = trialTitle(t);
   const dateParts = [];
-  if(t.sowDate) dateParts.push(`파종일 ${t.sowDate}`);
-  if(t.transplantDate) dateParts.push(`정식일 ${t.transplantDate}`);
-  if(t.referenceVariety) dateParts.push(`대비종 ${t.referenceVariety}`);
+  if(t.sowDate) dateParts.push(['파종일', t.sowDate]);
+  if(t.transplantDate) dateParts.push(['정식일', t.transplantDate]);
+  if(t.referenceVariety) dateParts.push(['대비종', t.referenceVariety]);
   const detailDatesEl = document.getElementById('detailDates');
-  if(dateParts.length){ detailDatesEl.textContent = dateParts.join(' · '); detailDatesEl.classList.remove('hidden'); }
-  else { detailDatesEl.classList.add('hidden'); }
+  if(dateParts.length){
+    detailDatesEl.innerHTML = dateParts.map(([label,value])=>`<div class="dd-row">${label}<b>${escapeHtml(value)}</b></div>`).join('');
+    detailDatesEl.classList.remove('hidden');
+  } else { detailDatesEl.classList.add('hidden'); }
   currentFieldAddresses = (t.fieldAddresses && t.fieldAddresses.length) ? t.fieldAddresses : (t.fieldAddress ? [t.fieldAddress] : []);
   const addrListEl = document.getElementById('detailAddressList');
   if(currentFieldAddresses.length){
