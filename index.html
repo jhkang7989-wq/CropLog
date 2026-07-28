@@ -494,7 +494,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v51 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v52 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -4126,9 +4126,20 @@ document.addEventListener('contextmenu', (e)=>{
 });
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  });
+  if(isNativeApp()){
+    // 네이티브 앱 안에서는 서비스워커가 필요 없고, 오히려 예전 버전을 계속 캐시해서 보여주는 원인이 될 수 있어
+    // 혹시 이미 등록된 게 있으면 해제하고 캐시도 정리함
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(r=> r.unregister());
+    }).catch(()=>{});
+    if(window.caches && caches.keys){
+      caches.keys().then(names=> names.forEach(n=> caches.delete(n))).catch(()=>{});
+    }
+  } else {
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
 }
 
 openDB().then(async ()=>{
