@@ -362,15 +362,14 @@
   .dd-row{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}
   .dd-row+.dd-row{border-top:1px solid var(--line);}
   .dd-row b{color:var(--ink);font-weight:800;font-size:12.5px;}
-  .detail-address{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);font-weight:700;margin-bottom:8px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:10px;padding:9px 8px 9px 14px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
-  .detail-address .action{width:32px;height:32px;border-radius:50%;background:rgba(47,93,86,0.08);color:var(--leaf);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;margin-bottom:6px;background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--leaf);border-radius:9px;padding:7px 6px 7px 12px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
+  .detail-address .action{width:26px;height:26px;border-radius:50%;background:rgba(47,93,86,0.08);color:var(--leaf);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
   #detailAddressList{margin-top:-8px;}
   #detailAddressList:empty{margin-top:0;}
   .addr-input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
   .addr-input-row input{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;}
   .addr-remove{white-space:nowrap;color:var(--danger);}
   .detail-address .addr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .detail-address .action{color:var(--muted);padding:4px;}
   .float-btn{
     position:fixed;left:16px;width:42px;height:42px;border-radius:50%;
     background:var(--paper);border:1px solid var(--line);color:var(--ink);
@@ -494,7 +493,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v47 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v48 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -3022,13 +3021,15 @@ function renderLightbox(){
 function attachLightboxGestures(){
   const wrap = document.getElementById('lbImgWrap');
   const img = document.getElementById('lbImg');
-  if(!wrap || !img) return;
+  const lb = document.getElementById('lightboxEl');
+  if(!wrap || !img || !lb) return;
   img.style.transition = 'none';
+  lb.style.transition = 'none';
   wrap.style.touchAction = 'none';
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1;
   let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
-  let mode=null; // 'pinch' | 'pan' | 'swipe'
+  let mode=null; // 'pinch' | 'pan' | 'swipe' | 'dismiss'
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
   function apply(smooth){
@@ -3036,6 +3037,11 @@ function attachLightboxGestures(){
     img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+  function applyDismiss(dy, smooth){
+    lb.style.transition = smooth ? 'transform .22s ease, opacity .22s ease' : 'none';
+    lb.style.transform = `translateY(${dy}px)`;
+    lb.style.opacity = String(Math.max(0.25, 1 - Math.abs(dy)/400));
+  }
 
   wrap.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){
@@ -3066,11 +3072,34 @@ function attachLightboxGestures(){
       panX = startPanX + (t.clientX-startTouchX);
       panY = startPanY + (t.clientY-startTouchY);
       apply(false);
+    } else if(mode==='swipe' && e.touches.length===1){
+      const t = e.touches[0];
+      const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
+      if(mode==='swipe' && (Math.abs(dy) > 10) && Math.abs(dy) > Math.abs(dx)*1.2){
+        mode = 'dismiss';
+      }
+      if(mode==='dismiss' && dy>0){
+        e.preventDefault();
+        applyDismiss(dy, false);
+      }
+    } else if(mode==='dismiss' && e.touches.length===1){
+      const t = e.touches[0];
+      const dy = t.clientY-swipeStartY;
+      if(dy>0){ e.preventDefault(); applyDismiss(dy, false); }
     }
   }, {passive:false});
 
   wrap.addEventListener('touchend', (e)=>{
-    if(mode==='swipe'){
+    if(mode==='dismiss'){
+      const t = e.changedTouches[0];
+      const dy = t.clientY-swipeStartY;
+      if(dy > 110){
+        applyDismiss(window.innerHeight, true);
+        setTimeout(()=> closeLightbox(), 220);
+      } else {
+        applyDismiss(0, true);
+      }
+    } else if(mode==='swipe'){
       const t = e.changedTouches[0];
       const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
       if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.2){
