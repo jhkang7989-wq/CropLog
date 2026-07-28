@@ -493,7 +493,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v48 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v49 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -2389,6 +2389,7 @@ function attachSimpleZoomPan(wrap, img){
 async function shareSavedComparison(id){
   const c = await idbGet('comparisons', id);
   if(!c) return;
+  if(isNativeApp()){ await nativeShareBlob(c.blob, 'comparison.png', '비교 이미지'); return; }
   const file = new File([c.blob], 'comparison.png', {type:'image/png'});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:'비교 이미지'}); }catch(e){}
@@ -3135,13 +3136,31 @@ async function deleteLightboxPhoto(){
   closeLightbox();
   if(currentTrialId) renderDetail(currentTrialId);
 }
+function isNativeApp(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+async function nativeShareBlob(blob, filename, title){
+  try{
+    const { Filesystem, Share } = window.Capacitor.Plugins;
+    const base64 = await blobToBase64(blob);
+    const result = await Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+    await Share.share({ title: title||filename, url: result.uri, dialogTitle: '공유 / 저장하기' });
+    return true;
+  }catch(e){
+    console.error(e);
+    toast('저장/공유에 실패했어요');
+    return false;
+  }
+}
 async function downloadBlob(photoId){
   const p = await idbGet('photos', photoId);
+  if(isNativeApp()){ await nativeShareBlob(p.blob, `${p.date}.jpg`, '사진 저장'); return; }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(p.blob); a.download = `${p.date}.jpg`; a.click();
 }
 async function shareBlob(photoId){
   const p = await idbGet('photos', photoId);
+  if(isNativeApp()){ await nativeShareBlob(p.blob, `${p.date}.jpg`, '작황 사진'); return; }
   const file = new File([p.blob], `${p.date}.jpg`, {type:p.blob.type||'image/jpeg'});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:'작황 사진'}); }catch(e){}
@@ -3409,6 +3428,10 @@ async function exportTrialPdf(){
   try{
     const pdfBytes = buildPdfBytes(pages);
     const pdfBlob = new Blob([pdfBytes], {type:'application/pdf'});
+    if(isNativeApp()){
+      await nativeShareBlob(pdfBlob, `${trialTitle(t)}_리포트.pdf`, 'PDF 리포트');
+      return;
+    }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(pdfBlob);
     a.download = `${trialTitle(t)}_리포트.pdf`;
@@ -3561,11 +3584,19 @@ async function downloadReport(){
   if(sel.length===0){ toast('공유할 사진을 선택해주세요'); return; }
   if(reportMode==='collage'){
     const canvas = await buildReportCanvas();
-    canvas.toBlob(blob=>{
+    canvas.toBlob(async blob=>{
+      if(isNativeApp()){ await nativeShareBlob(blob, `${window._reportMeta.t.name}_리포트.png`, '생육 리포트'); return; }
       const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
       a.download=`${window._reportMeta.t.name}_리포트.png`; a.click();
     });
   } else {
+    if(isNativeApp()){
+      for(let i=0;i<sel.length;i++){
+        await nativeShareBlob(sel[i].blob, `${window._reportMeta.t.name}_${sel[i].date}_${i+1}.jpg`, '작황 사진');
+      }
+      toast(`사진 ${sel.length}장 저장했어요`);
+      return;
+    }
     sel.forEach((p,i)=>{
       setTimeout(()=>{
         const a = document.createElement('a'); a.href=URL.createObjectURL(p.blob);
@@ -3581,6 +3612,7 @@ async function shareReport(){
   if(reportMode==='collage'){
     const canvas = await buildReportCanvas();
     canvas.toBlob(async blob=>{
+      if(isNativeApp()){ await nativeShareBlob(blob, 'report.png', '생육 리포트'); return; }
       const file = new File([blob], 'report.png', {type:'image/png'});
       if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
         try{ await navigator.share({files:[file], title:'생육 리포트'}); }catch(e){}
@@ -3589,6 +3621,12 @@ async function shareReport(){
       }
     });
   } else {
+    if(isNativeApp()){
+      for(let i=0;i<sel.length;i++){
+        await nativeShareBlob(sel[i].blob, `${sel[i].date}_${i+1}.jpg`, '작황 사진');
+      }
+      return;
+    }
     const files = sel.map((p,i)=> new File([p.blob], `${p.date}_${i+1}.jpg`, {type:p.blob.type||'image/jpeg'}));
     if(navigator.share && navigator.canShare && navigator.canShare({files})){
       try{ await navigator.share({files, title:'작황 사진'}); }catch(e){}
@@ -4016,6 +4054,10 @@ async function exportCSV(){
   };
   const csv = [header, ...rows].map(row=>row.map(escapeCell).join(',')).join('\r\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  if(isNativeApp()){
+    await nativeShareBlob(blob, `CropLog_시교목록_${todayStr()}.csv`, 'CSV 내보내기');
+    return;
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `CropLog_시교목록_${todayStr()}.csv`;
