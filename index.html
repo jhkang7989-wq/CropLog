@@ -101,13 +101,19 @@
   .cal-title{font-size:15px;font-weight:800;color:var(--soil);}
   .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px;}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-  .cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0 0;font-size:12px;color:var(--ink);cursor:pointer;position:relative;background:var(--paper);border:1px solid var(--line);}
+  @keyframes calSlideInLeft{ from{opacity:0; transform:translateX(26px);} to{opacity:1; transform:translateX(0);} }
+  @keyframes calSlideInRight{ from{opacity:0; transform:translateX(-26px);} to{opacity:1; transform:translateX(0);} }
+  .cal-grid.slide-in-left{ animation: calSlideInLeft .22s ease; }
+  .cal-grid.slide-in-right{ animation: calSlideInRight .22s ease; }
+  .cal-day{min-height:70px;border-radius:8px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:4px 3px;font-size:11px;color:var(--ink);cursor:pointer;position:relative;background:var(--paper);border:1px solid var(--line);overflow:hidden;}
   .cal-day.other-month{background:transparent;border-color:transparent;color:var(--line);}
-  .cal-day.today{border:2px solid var(--ink);font-weight:800;}
-  .cal-day .cal-dots{display:flex;gap:2px;margin-top:3px;}
-  .cal-day .cal-dot{width:5px;height:5px;border-radius:50%;background:var(--ink);}
-  .cal-day .cal-dot.done{background:var(--muted);}
-  .cal-day .cal-badge{margin-top:2px;font-size:9px;background:var(--ink);color:#fff;border-radius:8px;padding:0 4px;}
+  .cal-day.today{border:2px solid var(--ink);}
+  .cal-daynum{font-weight:800;text-align:center;margin-bottom:2px;}
+  .cal-day.today .cal-daynum{font-weight:900;}
+  .cal-labels{display:flex;flex-direction:column;gap:1px;}
+  .cal-label{font-size:8.5px;line-height:1.25;color:var(--soil);background:var(--cream);border-radius:3px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cal-label.done{color:var(--muted);text-decoration:line-through;background:transparent;}
+  .cal-more{font-size:8px;color:var(--muted);padding:0 3px;}
   .sched-item{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
   .sched-item .sched-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:transparent;cursor:pointer;margin-top:1px;}
   .sched-item.done .sched-check{background:var(--muted);border-color:var(--muted);color:#fff;}
@@ -116,6 +122,8 @@
   .sched-item.done .sched-title{color:var(--muted);text-decoration:line-through;}
   .sched-item .sched-sub{font-size:11px;color:var(--muted);margin-top:2px;}
   .sched-item .sched-actions{display:flex;gap:6px;flex:0 0 auto;}
+  .cal-add-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--soil);background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:5px 11px;text-decoration:none;}
+  .cal-add-btn:visited{color:var(--soil);}
   .scv-wrap{flex:1;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
   .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:8px;will-change:transform;}
   .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
@@ -248,6 +256,11 @@
   .mte-confirm{right:-14px;background:var(--leaf);}
   .mte-cancel{left:-14px;background:#8a8275;}
   .mte-resize{position:absolute;right:-8px;bottom:-8px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--leaf);}
+  .shape-handle{position:absolute;width:24px;height:24px;margin-left:-12px;margin-top:-12px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--leaf);touch-action:none;}
+  .shape-handle-move{background:rgba(255,255,255,0.6);}
+  .shp-btn{position:absolute;width:26px;height:26px;margin-left:-13px;margin-top:-13px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:none;}
+  .mte-confirm.shp-btn, .shp-btn.mte-confirm{background:var(--leaf);}
+  .mte-cancel.shp-btn, .shp-btn.mte-cancel{background:#8a8275;}
   #markCanvas{touch-action:none;border-radius:4px;}
   .mark-toolbar{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0));display:flex;justify-content:space-between;align-items:center;gap:10px;background:#26221c;}
   .mark-tools{display:flex;gap:6px;}
@@ -435,7 +448,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v36 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v37 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -927,7 +940,8 @@ function icon(name, size){
     textTool: `<svg ${c} ${s}><line x1="5" y1="6" x2="19" y2="6"/><line x1="12" y1="6" x2="12" y2="19"/></svg>`,
     undo: `<svg ${c} ${s}><path d="M4 8h9a5 5 0 0 1 0 10h-2"/><polyline points="8,4 4,8 8,12"/></svg>`,
     copy: `<svg ${c} ${s}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
-    pin: `<svg ${c} ${s}><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>`
+    pin: `<svg ${c} ${s}><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>`,
+    calendarPlus: `<svg ${c} ${s}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>`
   };
   return icons[name] || '';
 }
@@ -1738,14 +1752,14 @@ function calShiftMonth(delta){
   calMonth += delta;
   if(calMonth<0){ calMonth=11; calYear--; }
   if(calMonth>11){ calMonth=0; calYear++; }
-  renderCalGrid(); renderCalUpcoming();
+  renderCalGrid(delta); renderCalUpcoming();
 }
 function calGoToday(){
   const now = new Date();
   calYear = now.getFullYear(); calMonth = now.getMonth();
   renderCalGrid(); renderCalUpcoming();
 }
-async function renderCalGrid(){
+async function renderCalGrid(slideDir){
   document.getElementById('calTitle').textContent = `${calYear}년 ${calMonth+1}월`;
   const firstWeekday = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
@@ -1763,12 +1777,34 @@ async function renderCalGrid(){
     const list = byDate[dateStr]||[];
     let mark = '';
     if(list.length){
-      if(list.length<=3) mark = `<div class="cal-dots">${list.map(s=>`<div class="cal-dot ${s.status==='done'?'done':''}"></div>`).join('')}</div>`;
-      else mark = `<div class="cal-badge">${list.length}</div>`;
+      const shown = list.slice(0,3);
+      mark = `<div class="cal-labels">${shown.map(s=>`<div class="cal-label ${s.status==='done'?'done':''}">${escapeHtml(s.targetText||'')}</div>`).join('')}${list.length>3?`<div class="cal-more">+${list.length-3}건 더</div>`:''}</div>`;
     }
-    cells += `<div class="cal-day ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')">${d}${mark}</div>`;
+    cells += `<div class="cal-day ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')"><div class="cal-daynum">${d}</div>${mark}</div>`;
   }
   document.getElementById('calGrid').innerHTML = cells;
+  const gridEl = document.getElementById('calGrid');
+  gridEl.classList.remove('slide-in-left','slide-in-right');
+  if(slideDir){
+    void gridEl.offsetWidth; // 리플로우 강제로 애니메이션 재시작
+    gridEl.classList.add(slideDir>0 ? 'slide-in-left' : 'slide-in-right');
+  }
+  initCalSwipe(gridEl);
+}
+function initCalSwipe(gridEl){
+  if(gridEl.dataset.swipeBound) return;
+  gridEl.dataset.swipeBound = '1';
+  let startX=0, startY=0;
+  gridEl.addEventListener('touchstart', (e)=>{
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+  }, {passive:true});
+  gridEl.addEventListener('touchend', (e)=>{
+    const dx = e.changedTouches[0].clientX-startX;
+    const dy = e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.3){
+      calShiftMonth(dx<0 ? 1 : -1);
+    }
+  }, {passive:true});
 }
 async function renderCalUpcoming(){
   const today = todayStr();
@@ -1810,7 +1846,7 @@ function renderScheduleItemHtml(s){
       <div class="sched-body">
         <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
         <div class="sched-sub">${s.time? s.time+' · ':''}${escapeHtml(s.purpose||'')}</div>
-        <div style="margin-top:5px;"><a href="${googleCalendarUrl(s)}" target="_blank" rel="noopener" class="link" style="margin-left:0;">내 캘린더에 추가</a></div>
+        <div style="margin-top:7px;"><a href="${googleCalendarUrl(s)}" target="_blank" rel="noopener" class="cal-add-btn">${icon('calendarPlus',13)} 캘린더에 추가</a></div>
       </div>
       <div class="sched-actions">
         <button class="action" style="color:var(--muted);" onclick="closeModal('dayModal'); openScheduleModal('${s.date}','${s.id}')">${icon('edit',15)}</button>
@@ -2501,7 +2537,7 @@ function redrawMarkCanvas(){
   const {ctx, img, dispW, dispH, shapes, current} = markState;
   ctx.clearRect(0,0,dispW,dispH);
   ctx.drawImage(img, 0,0, dispW, dispH);
-  [...shapes, current].filter(Boolean).forEach(sh=> drawMarkShape(ctx, sh));
+  [...shapes, current, pendingShapeData].filter(Boolean).forEach(sh=> drawMarkShape(ctx, sh));
 }
 function drawMarkShape(ctx, sh){
   ctx.strokeStyle = sh.color; ctx.fillStyle = sh.color;
@@ -2539,7 +2575,7 @@ function getMarkPoint(e, canvas){
 function attachMarkTouchHandlers(canvas){
   canvas.addEventListener('touchstart', (e)=>{
     e.preventDefault();
-    if(!markState || pendingTextData) return;
+    if(!markState || pendingTextData || pendingShapeData) return;
     const pt = getMarkPoint(e, canvas);
     const {tool, color} = markState;
     if(tool==='text'){
@@ -2561,9 +2597,91 @@ function attachMarkTouchHandlers(canvas){
   canvas.addEventListener('touchend', ()=>{
     if(!markState || !markState.drawing) return;
     markState.drawing = false;
-    if(markState.current) markState.shapes.push(markState.current);
-    markState.current = null;
+    if(markState.current){
+      if(markState.tool==='pen'){
+        markState.shapes.push(markState.current);
+        markState.current = null;
+      } else {
+        // 원/화살표는 바로 확정하지 않고, 위치/크기 조절 가능한 상태로 전환
+        const dx = markState.current.x2-markState.current.x1, dy = markState.current.y2-markState.current.y1;
+        if(Math.hypot(dx,dy) < 8){ markState.current = null; return; } // 너무 작으면 실수로 간주하고 무시
+        pendingShapeData = { ...markState.current };
+        markState.current = null;
+        redrawMarkCanvas();
+        renderPendingShapeHandles();
+      }
+    }
   });
+}
+/* ---- 원/화살표 배치(이동/크기조절) ---- */
+let pendingShapeData = null;
+function renderPendingShapeHandles(){
+  removeIfExists('shapeHandles');
+  const inner = document.getElementById('markCanvasInner');
+  const s = pendingShapeData;
+  const wrap = document.createElement('div');
+  wrap.id = 'shapeHandles';
+  wrap.style.cssText = 'position:absolute;inset:0;';
+  const topY = Math.min(s.y1, s.y2) - 36;
+  const midX = (s.x1+s.x2)/2;
+  let handlesHtml = '';
+  if(s.type==='circle'){
+    handlesHtml += `<div class="shape-handle shape-handle-move" id="shMove" style="left:${s.x1}px;top:${s.y1}px;"></div>`;
+    handlesHtml += `<div class="shape-handle" id="shResize" style="left:${s.x2}px;top:${s.y2}px;"></div>`;
+  } else {
+    handlesHtml += `<div class="shape-handle" id="shA" style="left:${s.x1}px;top:${s.y1}px;"></div>`;
+    handlesHtml += `<div class="shape-handle" id="shB" style="left:${s.x2}px;top:${s.y2}px;"></div>`;
+  }
+  handlesHtml += `<div class="shp-btn mte-cancel" style="left:${midX-16}px;top:${topY}px;" onclick="cancelPendingShape()">${icon('close',14)}</div>`;
+  handlesHtml += `<div class="shp-btn mte-confirm" style="left:${midX+16}px;top:${topY}px;" onclick="confirmPendingShape()">${icon('check',14)}</div>`;
+  wrap.innerHTML = handlesHtml;
+  inner.appendChild(wrap);
+  attachShapeHandleDrag();
+}
+function attachShapeHandleDrag(){
+  const s = pendingShapeData;
+  function makeDraggable(el, onMove){
+    if(!el) return;
+    let startX=0, startY=0, orig=null;
+    el.addEventListener('touchstart', (e)=>{
+      e.stopPropagation();
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      orig = { x1:s.x1, y1:s.y1, x2:s.x2, y2:s.y2 };
+    }, {passive:true});
+    el.addEventListener('touchmove', (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      const t = e.touches[0];
+      const dx = t.clientX-startX, dy = t.clientY-startY;
+      onMove(dx, dy, orig);
+      redrawMarkCanvas();
+      renderPendingShapeHandles();
+    }, {passive:false});
+    el.addEventListener('touchend', (e)=>{ e.stopPropagation(); }, {passive:true});
+  }
+  if(s.type==='circle'){
+    makeDraggable(document.getElementById('shMove'), (dx,dy,orig)=>{
+      s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
+    });
+    makeDraggable(document.getElementById('shResize'), (dx,dy,orig)=>{
+      s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
+    });
+  } else {
+    makeDraggable(document.getElementById('shA'), (dx,dy,orig)=>{ s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; });
+    makeDraggable(document.getElementById('shB'), (dx,dy,orig)=>{ s.x2 = orig.x2+dx; s.y2 = orig.y2+dy; });
+  }
+}
+function confirmPendingShape(){
+  if(!pendingShapeData || !markState) return;
+  markState.shapes.push(pendingShapeData);
+  pendingShapeData = null;
+  removeIfExists('shapeHandles');
+  redrawMarkCanvas();
+}
+function cancelPendingShape(){
+  pendingShapeData = null;
+  removeIfExists('shapeHandles');
+  redrawMarkCanvas();
 }
 /* ---- 텍스트 배치(이동/크기조절) ---- */
 let pendingTextData = null;
@@ -2657,10 +2775,13 @@ function undoMarkShape(){
 }
 function cancelMarking(){
   markState = null;
+  pendingShapeData = null;
+  pendingTextData = null;
   removeIfExists('markOverlay');
 }
 async function saveMarking(){
   if(!markState) return;
+  if(pendingShapeData) confirmPendingShape();
   if(markState.shapes.length===0){
     const ok = await showConfirm({title:'마킹 없음', message:'표시한 내용이 없어요. 그래도 저장할까요?', confirmLabel:'저장'});
     if(!ok) return;
