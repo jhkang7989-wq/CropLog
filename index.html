@@ -468,7 +468,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v44 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v45 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -894,6 +894,15 @@ function idbPut(store, val){
     const r = tx(store,'readwrite').put(val);
     r.onsuccess=()=>res(true);
     r.onerror=()=>rej(r.error);
+  });
+}
+function idbPutMany(store, items){
+  return new Promise((res, rej)=>{
+    const t = db.transaction(store, 'readwrite');
+    const os = t.objectStore(store);
+    items.forEach(item => os.put(item));
+    t.oncomplete = ()=>res(true);
+    t.onerror = ()=>rej(t.error);
   });
 }
 function idbDelete(store, key){
@@ -3065,10 +3074,11 @@ async function savePhotos(){
   const date = document.getElementById('uploadDate').value || todayStr();
   toast('사진을 처리하고 있어요...');
   try{
-    for(const f of pendingFiles){
-      const {blob, thumbBlob} = await processUploadFile(f);
-      await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt:Date.now()});
-    }
+    const processed = await Promise.all(pendingFiles.map(f=>processUploadFile(f)));
+    const records = processed.map(({blob, thumbBlob})=>({
+      id: uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt: Date.now()
+    }));
+    await idbPutMany('photos', records);
     toast(`사진 ${pendingFiles.length}장 저장됐어요`);
     go('detail', currentTrialId);
   }catch(e){
