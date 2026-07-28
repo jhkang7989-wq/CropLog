@@ -488,12 +488,13 @@
       <div class="settings-group">
         <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
         <div class="settings-row" onclick="go('help')"><span>사용법 보기</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="showNativeDiagnostics()"><span>네이티브 진단 정보</span><span class="chev">›</span></div>
       </div>
 
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v50 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v51 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -3135,6 +3136,20 @@ async function deleteLightboxPhoto(){
   toast('사진을 삭제했어요');
   closeLightbox();
   if(currentTrialId) renderDetail(currentTrialId);
+}
+async function showNativeDiagnostics(){
+  const lines = [];
+  lines.push(`window.Capacitor 존재: ${typeof window.Capacitor !== 'undefined' ? '예' : '아니오'}`);
+  if(window.Capacitor){
+    lines.push(`isNativePlatform(): ${typeof window.Capacitor.isNativePlatform==='function' ? window.Capacitor.isNativePlatform() : '함수 없음'}`);
+    lines.push(`getPlatform(): ${typeof window.Capacitor.getPlatform==='function' ? window.Capacitor.getPlatform() : '함수 없음'}`);
+    const pluginNames = window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins) : [];
+    lines.push(`등록된 플러그인 (${pluginNames.length}개): ${pluginNames.join(', ')||'없음'}`);
+  }
+  lines.push(`isNativeApp() 결과: ${isNativeApp()}`);
+  lines.push(`현재 주소: ${window.location.href}`);
+  lines.push(`User Agent: ${navigator.userAgent}`);
+  await showAlert({title:'네이티브 진단 정보', message: lines.join('\n\n')});
 }
 function isNativeApp(){
   if(typeof window === 'undefined' || !window.Capacitor) return false;
