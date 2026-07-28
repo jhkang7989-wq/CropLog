@@ -16,8 +16,8 @@
 <style>
   :root{
     --soil:#3c3226;
-    --leaf:#262626;
-    --leaf-dark:#000000;
+    --leaf:#2f5d56;
+    --leaf-dark:#1f3e39;
     --sprout:#c4beae;
     --sun:#d99a3c;
     --cream:#f6f4ee;
@@ -114,7 +114,7 @@
   .cal-label{font-size:8.5px;line-height:1.25;color:var(--soil);background:var(--cream);border-radius:3px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cal-label.done{color:var(--muted);text-decoration:line-through;background:transparent;}
   .cal-more{font-size:8px;color:var(--muted);padding:0 3px;}
-  .sched-item{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
+  .sched-item{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
   .sched-item .sched-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:transparent;cursor:pointer;margin-top:1px;}
   .sched-item.done .sched-check{background:var(--muted);border-color:var(--muted);color:#fff;}
   .sched-item .sched-body{flex:1;min-width:0;}
@@ -163,7 +163,7 @@
   .list-item .chev{color:var(--muted);}
   .crop-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid rgba(0,0,0,0.08);}
 
-  .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 10px;line-height:1.6;}
+  .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 14px;line-height:1.6;background:rgba(60,50,38,0.025);border:1px dashed var(--line);border-radius:12px;}
 
   .fab{
     position:fixed;bottom:76px;right:20px;
@@ -208,8 +208,8 @@
   .switch.on .knob{transform:translateX(18px);}
 
   .btn{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;}
-  .btn-primary{background:var(--leaf);color:#fff;}
-  .btn-dark{background:var(--leaf-dark);color:#fff;}
+  .btn-primary{background:var(--leaf);color:#fff;box-shadow:0 3px 8px rgba(47,93,86,0.28);}
+  .btn-dark{background:var(--leaf-dark);color:#fff;box-shadow:0 3px 8px rgba(31,62,57,0.28);}
   .btn-ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink);}
   .btn-danger{background:#fbeceA;color:var(--danger);}
   .btn-row{display:flex;gap:8px;}
@@ -325,8 +325,8 @@
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--soil);color:#fff;padding:10px 18px;border-radius:20px;font-size:12.5px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;}
   .toast.show{opacity:1;}
 
-  .settings-group{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;}
-  .help-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;}
+  .settings-group{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
+  .help-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(60,50,38,0.06);}
   .help-title{font-size:13px;font-weight:800;color:var(--soil);margin-bottom:5px;}
   .help-card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.6;}
   .help-card p b{color:var(--ink);}
@@ -448,7 +448,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v38 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v39 · 로컬 저장 모드</div>
     </main>
   </section>
 
