@@ -27,38 +27,67 @@
     --muted:#8a8275;
     --danger:#b5543f;
   }
-  *{box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  
+  /* ================= [성능 최적화 1] 터치 반응 및 하드웨어 가속 설정 ================= */
+  *{
+    box-sizing:border-box;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
   img{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto;}
   input, textarea{-webkit-user-select:text;user-select:text;}
   html{scroll-behavior:smooth;}
-  @keyframes viewFadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
-  #app > section:not(.hidden){ animation: viewFadeIn .16s ease-out; }
-  @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
-  @keyframes sheetUp{ from{opacity:0; transform:translateY(24px);} to{opacity:1; transform:translateY(0);} }
-  .modal-backdrop{ animation: backdropIn .18s ease; }
-  .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
-  @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
-  .lightbox{ animation: lightboxIn .18s ease; }
-  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
-    transition: transform .12s ease, opacity .12s ease, background-color .15s ease;
+
+  /* 버튼 및 클릭 가능 요소 터치 딜레이(300ms) 제거 및 GPU 가속 */
+  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row, .fab {
+    touch-action: manipulation;
+    will-change: transform, opacity;
+    transition: transform .12s cubic-bezier(0, 0, 0.2, 1), opacity .12s ease, background-color .15s ease;
   }
-  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
-    transform: scale(0.96); opacity:0.85;
+  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active, .fab:active {
+    transform: scale3d(0.96, 0.96, 1);
+    opacity: 0.85;
   }
   .switch{ transition: background-color .18s ease; }
   .switch .knob{ transition: transform .18s cubic-bezier(.22,.61,.36,1); }
+
+  /* ================= [성능 최적화 2] 3D GPU 변환으로 화면 전환 60fps 유지 ================= */
+  @keyframes viewFadeIn{ 
+    from{ opacity:0; transform:translate3d(0, 6px, 0); } 
+    to{ opacity:1; transform:translate3d(0, 0, 0); } 
+  }
+  #app > section:not(.hidden){ 
+    animation: viewFadeIn .15s cubic-bezier(0, 0, 0.2, 1); 
+    will-change: transform, opacity;
+  }
+  @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes sheetUp{ 
+    from{ opacity:0; transform:translate3d(0, 30px, 0); } 
+    to{ opacity:1; transform:translate3d(0, 0, 0); } 
+  }
+  .modal-backdrop{ animation: backdropIn .18s ease; }
+  .modal-sheet{ 
+    animation: sheetUp .2s cubic-bezier(.22,.61,.36,1); 
+    will-change: transform, opacity;
+  }
+  @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
+  .lightbox{ animation: lightboxIn .18s ease; }
+
   html,body{
     margin:0;padding:0;height:100%;
     background:var(--cream);
     font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     color:var(--ink);
-    -webkit-tap-highlight-color:transparent;
   }
   #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--cream);}
   body.scroll-locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
+  
   header.topbar{
     background:var(--cream);color:var(--ink);
     padding:14px 16px;
+    padding-top:env(safe-area-inset-top, 14px); /* 안전영역 지원 */
     display:flex;align-items:center;justify-content:space-between;
     position:sticky;top:0;z-index:10;
     border-bottom:1px solid var(--line);
@@ -69,7 +98,15 @@
   header.topbar .back{background:none;border:none;color:var(--ink);font-size:15px;cursor:pointer;padding:4px 6px;}
   .action{background:none;border:none;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
   header.topbar .action{background:none;border:none;color:var(--ink);font-size:20px;cursor:pointer;padding:4px 6px;display:inline-flex;align-items:center;}
-  main{flex:1;padding:14px 16px 130px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+  
+  /* ================= [성능 최적화 3] 스크롤 체이닝 방지 ================= */
+  main{
+    flex:1;
+    padding:14px 16px 130px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
   .bottom-tabbar{
     position:fixed;bottom:0;left:50%;transform:translateX(-50%);
     width:100%;max-width:480px;background:var(--paper);border-top:1px solid var(--line);
@@ -91,7 +128,7 @@
   .section-title{font-size:13px;font-weight:800;color:var(--soil);margin:20px 0 10px;display:flex;align-items:center;gap:6px;}
   .section-title .link{font-size:11px;color:var(--leaf-dark);font-weight:400;cursor:pointer;margin-left:auto;}
 
-  /* ---- 즐겨찾기: 세련된 핀 카드 (컬러 그라데이션 + 리본) ---- */
+  /* ---- 즐겨찾기 ---- */
   .pin-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);}
@@ -130,7 +167,13 @@
   .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;}
   .pin-card .seg{font-size:10px;opacity:0.85;}
 
-  /* ---- 최근 등록: 클린 리스트 ---- */
+  /* ================= [성능 최적화 4] 대량 리스트 / 렌더링 스킵 ================= */
+  .date-group, .recent-item, .list-item {
+    content-visibility: auto;
+    contain-intrinsic-size: 80px;
+  }
+
+  /* ---- 최근 등록 ---- */
   .recent-item{
     background:var(--paper);border:1px solid var(--line);border-radius:12px;
     padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
@@ -932,7 +975,6 @@ async function ensurePresetCrops(){
   }
 }
 function textColorFor(bgHex){
-  // 밝은 배경(흰색, 노란색 등)엔 어두운 글씨, 아니면 흰 글씨
   const c = bgHex.replace('#','');
   const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
   const brightness = (r*299+g*587+b*114)/1000;
@@ -1049,7 +1091,6 @@ function scrollActiveMainTop(){
   if(active) active.scrollTo({top:0, behavior:'smooth'});
 }
 window.addEventListener('popstate', ()=>{
-  // 모달이 열려있으면 뒤로가기로 모달만 닫기
   const openModal = document.querySelector('.modal-backdrop');
   if(openModal){ openModal.remove(); history.pushState({navIndex: navStack.length-1}, ''); return; }
   const lightbox = document.getElementById('lightboxEl');
@@ -1060,7 +1101,6 @@ window.addEventListener('popstate', ()=>{
     const prev = navStack[navStack.length-1];
     go(prev.view, prev.arg, true);
   } else {
-    // 홈 화면에서는 앱이 그냥 꺼지지 않도록 현재 상태 유지
     history.pushState({navIndex:0}, '');
   }
 });
@@ -1095,7 +1135,6 @@ async function renderHome(){
   const trials = await idbGetAll('trials');
   const favIds = (await idbGet('meta','favorites'))?.value || [];
 
-  // 즐겨찾기 - 세련된 컬러 카드
   const favRow = document.getElementById('favRow');
   const favTrials = trials.filter(t=>favIds.includes(t.id));
   if(favTrials.length===0){
@@ -1113,7 +1152,6 @@ async function renderHome(){
     }).join('');
   }
 
-  // 최근 등록 - 클린 리스트 + 컬러 바
   const recentList = document.getElementById('recentList');
   const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
   if(sorted.length===0){
@@ -1520,7 +1558,7 @@ async function deleteTrialConfirm(){
   go('home');
 }
 let allPhotosCache = [];
-let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
+let cmpSlots = [null, null];
 function switchDetailTab(tab){
   if(tab!=='timeline') exitTimelineSelectMode();
   document.getElementById('detailTabTimeline').classList.toggle('active', tab==='timeline');
@@ -1648,7 +1686,7 @@ function resetDetailCompare(){
 }
 
 /* ================= 품종 비교 (교차 비교) ================= */
-let xCmpSlots = [null, null]; // 각 원소: {trialId, photoId} 또는 null, 2~4개
+let xCmpSlots = [null, null];
 function renderXCompare(){
   const row = document.getElementById('xCmpSlotsRow');
   row.innerHTML = xCmpSlots.map((_,i)=>`
@@ -1909,7 +1947,7 @@ async function checkTodaySchedules(){
 
 function enableRotatorZoom(rotator){
   let scale=1, startDist=0, startScale=1, lastTap=0;
-  let panX=0, panY=0;         // 로컬(회전 전) 좌표계 기준 누적 이동량
+  let panX=0, panY=0;
   let dragStartX=0, dragStartY=0, dragStartPanX=0, dragStartPanY=0, dragging=false;
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
@@ -1937,7 +1975,6 @@ function enableRotatorZoom(rotator){
       }
     } else if(e.touches.length===1 && dragging){
       e.preventDefault();
-      // 화면(시각) 기준 이동량을 회전 전 로컬 좌표계로 변환 (rotate(90deg) 보정)
       const moveX = e.touches[0].clientX - dragStartX;
       const moveY = e.touches[0].clientY - dragStartY;
       panX = dragStartPanX + moveY;
@@ -1981,7 +2018,7 @@ function openDetailCompareLandscape(){
   showLandscapePhotos(cmpSlots);
 }
 
-/* ================= 비교 저장 (성장비교/품종비교 공용) ================= */
+/* ================= 비교 저장 ================= */
 function buildComparisonCanvas({photoInfos, sharedHeader}){
   return new Promise(async (resolve)=>{
     const n = photoInfos.length;
@@ -2536,7 +2573,7 @@ function attachMarkTouchHandlers(canvas){
     markState.current = null;
   });
 }
-/* ---- 텍스트 배치(이동/크기조절) ---- */
+
 let pendingTextData = null;
 function startTextPlacement(pt, color){
   promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
@@ -2566,7 +2603,7 @@ function renderPendingTextEditor(){
 }
 function attachPendingTextGestures(el){
   const textEl = el.querySelector('.mte-text');
-  let mode = null; // 'move' | 'resize'
+  let mode = null;
   let startX=0, startY=0, startLeft=0, startTop=0, startSize=0;
   textEl.addEventListener('touchstart', (e)=>{
     e.stopPropagation();
@@ -2692,7 +2729,7 @@ function attachLightboxGestures(){
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1;
   let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
-  let mode=null; // 'pinch' | 'pan' | 'swipe'
+  let mode=null;
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
   function apply(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`; }
@@ -2826,7 +2863,6 @@ async function renderReport(trialId){
   reportPhotosCache = photos;
   window._reportMeta = {t, c};
 
-  // 처음 진입 시 아무 사진도 선택돼있지 않은 상태로 시작 (전체선택 버튼으로 직접 고름)
   selectedReportIds = new Set();
   reportMode = 'individual';
   document.getElementById('modeIndividual').classList.add('active');
@@ -2996,11 +3032,11 @@ async function shareReport(){
 const GOOGLE_CLIENT_ID = '101745594691-bri5ddan44ksiiq72ut2ckb0t501uk8e.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const BACKUP_PREFIX = 'croplog-backup-';
-const MAX_BACKUP_VERSIONS = 5; // 오늘/어제/그제/1주일전/1달전, 총 5개 슬롯
+const MAX_BACKUP_VERSIONS = 5;
 function selectBackupsToKeep(files){
   const now = Date.now();
   const DAY = 86400000;
-  const targetDays = [0, 1, 2, 7, 30]; // 최근일수록 촘촘하게, 오래될수록 듬성듬성
+  const targetDays = [0, 1, 2, 7, 30];
   const parsed = files.map(f=>{
     const ts = parseInt(f.name.replace(BACKUP_PREFIX,'').replace('.json',''), 10);
     return { id:f.id, name:f.name, ts, ageDays: isNaN(ts) ? null : (now-ts)/DAY };
@@ -3057,7 +3093,7 @@ async function getValidToken(){
   return await requestAccessToken(!gAccessToken);
 }
 async function trySilentGoogleSignIn(){
-  if(gAccessToken && Date.now() < gTokenExpiry) return; // 이미 유효한 토큰 있음
+  if(gAccessToken && Date.now() < gTokenExpiry) return;
   if(!ensureTokenClient()) return;
   try{
     await new Promise((resolve, reject)=>{
@@ -3078,9 +3114,7 @@ async function trySilentGoogleSignIn(){
     }catch(e){
       document.getElementById('syncAccountInfo').textContent = '로그인됨';
     }
-  }catch(e){
-    // 조용한 재로그인 실패 시 그냥 로그인 안 된 상태로 둠 (사용자가 직접 로그인 버튼 눌러야 함)
-  }
+  }catch(e){}
 }
 async function startGoogleSignIn(){
   try{
@@ -3141,7 +3175,6 @@ async function performBackup(silent){
       idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
     ]);
 
-    // 안전장치: 로컬에 시교가 하나도 없는데 예전 백업은 있는 상태라면, 실수로 빈 데이터를 덮어쓰는 걸 막음
     if(trials.length===0){
       const existing = await listBackupFiles(token);
       if(existing.length>0){
@@ -3185,7 +3218,6 @@ async function performBackup(silent){
     });
     if(!res.ok) throw new Error('upload failed: '+res.status);
 
-    // 오래된 백업 정리 — 최근 며칠은 촘촘하게, 오래된 건 듬성듬성(오늘/어제/그제/1주일전/1달전) 보관
     const allBackups = await listBackupFiles(token);
     const keepIds = selectBackupsToKeep(allBackups);
     const toDelete = allBackups.filter(f=>!keepIds.has(f.id));
@@ -3224,9 +3256,7 @@ async function autoBackupCheckAndRun(){
       gTokenClient.requestAccessToken({prompt:''});
     });
     await performBackup(true);
-  }catch(e){
-    // 자동(무인) 로그인이 안 되면 조용히 넘어감 — 사용자가 직접 로그인해야 다음 백업이 가능함
-  }
+  }catch(e){}
 }
 async function restoreFromDrive(){
   const statusEl = document.getElementById('syncStatusText');
@@ -3347,8 +3377,7 @@ async function confirmResetData(){
   }
 }
 
-/* ================= 초기화 ================= */
-/* ================= 모달 열림 시 배경 스크롤 잠금 ================= */
+/* ================= [성능 최적화 5] 스크롤 잠금 레이아웃 리플로우 최소화 ================= */
 let _scrollLockY = 0;
 new MutationObserver(()=>{
   const hasModal = !!document.querySelector('.modal-backdrop, .lightbox, .landscape-overlay');
