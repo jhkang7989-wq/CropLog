@@ -463,7 +463,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v42 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v43 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -885,10 +885,18 @@ function idbGet(store, key){
   return new Promise((res)=>{ const r = tx(store).get(key); r.onsuccess=()=>res(r.result); });
 }
 function idbPut(store, val){
-  return new Promise((res)=>{ const r = tx(store,'readwrite').put(val); r.onsuccess=()=>res(true); });
+  return new Promise((res, rej)=>{
+    const r = tx(store,'readwrite').put(val);
+    r.onsuccess=()=>res(true);
+    r.onerror=()=>rej(r.error);
+  });
 }
 function idbDelete(store, key){
-  return new Promise((res)=>{ const r = tx(store,'readwrite').delete(key); r.onsuccess=()=>res(true); });
+  return new Promise((res, rej)=>{
+    const r = tx(store,'readwrite').delete(key);
+    r.onsuccess=()=>res(true);
+    r.onerror=()=>rej(r.error);
+  });
 }
 function idbClearAll(){
   return new Promise((res)=>{
@@ -1157,6 +1165,14 @@ function rawToast(msg){
 function toast(msg){
   if(!appSettings.feedback) return;
   rawToast(msg);
+}
+function showStorageError(e){
+  console.error(e);
+  if(e && (e.name==='QuotaExceededError' || (e.message||'').includes('Quota'))){
+    rawToast('저장공간이 부족해요. 기기 용량을 확인해주세요.');
+  } else {
+    rawToast('저장에 실패했어요. 다시 시도해주세요.');
+  }
 }
 
 /* ================= 홈 ================= */
@@ -2124,8 +2140,10 @@ async function saveDetailComparison(){
   if(dateBits) sharedHeader.push(dateBits);
   const photoInfos = photoRecords.map(p=>({ blob:p.blob, lines:[p.date] }));
   const blob = await buildComparisonCanvas({photoInfos, sharedHeader});
-  await idbPut('comparisons', {id:uid(), scope:'detail', trialId: currentTrialId, blob, createdAt: Date.now()});
-  toast('비교를 저장했어요');
+  try{
+    await idbPut('comparisons', {id:uid(), scope:'detail', trialId: currentTrialId, blob, createdAt: Date.now()});
+    toast('비교를 저장했어요');
+  }catch(e){ showStorageError(e); return; }
   renderSavedComparisons('detail', currentTrialId);
 }
 async function saveXComparison(){
@@ -2140,8 +2158,10 @@ async function saveXComparison(){
   }
   if(photoInfos.length<2){ toast('비교할 사진이 부족해요'); return; }
   const blob = await buildComparisonCanvas({photoInfos, sharedHeader: []});
-  await idbPut('comparisons', {id:uid(), scope:'xcompare', trialId:null, blob, createdAt: Date.now()});
-  toast('비교를 저장했어요');
+  try{
+    await idbPut('comparisons', {id:uid(), scope:'xcompare', trialId:null, blob, createdAt: Date.now()});
+    toast('비교를 저장했어요');
+  }catch(e){ showStorageError(e); return; }
   renderSavedComparisons('xcompare');
 }
 async function renderSavedComparisons(scope, trialId){
@@ -2836,14 +2856,18 @@ async function saveMarking(){
     thumbCanvas.height = Math.round(canvas.height*tscale);
     thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
     const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
-    await idbPut('photos', {
-      id:newId, trialId: original.trialId, date: original.date, createdAt: Date.now(),
-      blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
-    });
-    toast('마킹한 사진을 저장했어요');
-    removeIfExists('markOverlay');
-    markState = null;
-    if(currentTrialId) renderDetail(currentTrialId);
+    try{
+      await idbPut('photos', {
+        id:newId, trialId: original.trialId, date: original.date, createdAt: Date.now(),
+        blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
+      });
+      toast('마킹한 사진을 저장했어요');
+      removeIfExists('markOverlay');
+      markState = null;
+      if(currentTrialId) renderDetail(currentTrialId);
+    }catch(e){
+      showStorageError(e);
+    }
   }, 'image/jpeg', 0.9);
 }
 
@@ -3035,12 +3059,16 @@ async function savePhotos(){
   if(pendingFiles.length===0){ toast('사진을 먼저 선택해주세요'); return; }
   const date = document.getElementById('uploadDate').value || todayStr();
   toast('사진을 처리하고 있어요...');
-  for(const f of pendingFiles){
-    const {blob, thumbBlob} = await processUploadFile(f);
-    await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt:Date.now()});
+  try{
+    for(const f of pendingFiles){
+      const {blob, thumbBlob} = await processUploadFile(f);
+      await idbPut('photos', {id:uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt:Date.now()});
+    }
+    toast(`사진 ${pendingFiles.length}장 저장됐어요`);
+    go('detail', currentTrialId);
+  }catch(e){
+    showStorageError(e);
   }
-  toast(`사진 ${pendingFiles.length}장 저장됐어요`);
-  go('detail', currentTrialId);
 }
 
 /* ================= PDF 내보내기 (시교별) ================= */
