@@ -494,7 +494,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v52 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v54 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -2137,9 +2137,12 @@ async function checkTodaySchedules(){
 }
 
 function enableRotatorZoom(rotator){
+  const overlay = rotator.closest('.landscape-overlay');
   let scale=1, startDist=0, startScale=1, lastTap=0;
   let panX=0, panY=0;         // 로컬(회전 전) 좌표계 기준 누적 이동량
   let dragStartX=0, dragStartY=0, dragStartPanX=0, dragStartPanY=0, dragging=false;
+  let mode=null; // 'dismiss' 감지용 (스케일 1일 때 아래로 스와이프)
+  let swipeStartX=0, swipeStartY=0;
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
@@ -2147,13 +2150,24 @@ function enableRotatorZoom(rotator){
     rotator.style.transition = withTransition===false ? 'none' : 'transform .15s ease';
     rotator.style.transform = `rotate(90deg) translate(${panX}px, ${panY}px) scale(${scale})`;
   }
+  function applyDismiss(dy, smooth){
+    if(!overlay) return;
+    overlay.style.transition = smooth ? 'transform .22s ease, opacity .22s ease' : 'none';
+    overlay.style.transform = `translateY(${dy}px)`;
+    overlay.style.opacity = String(Math.max(0.25, 1 - Math.abs(dy)/400));
+  }
   rotator.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){
-      startDist = dist(e.touches); startScale = scale; dragging=false;
-    } else if(e.touches.length===1 && scale>1.01){
-      dragging = true;
-      dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY;
-      dragStartPanX = panX; dragStartPanY = panY;
+      startDist = dist(e.touches); startScale = scale; dragging=false; mode=null;
+    } else if(e.touches.length===1){
+      if(scale>1.01){
+        dragging = true; mode=null;
+        dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY;
+        dragStartPanX = panX; dragStartPanY = panY;
+      } else {
+        mode = 'tap';
+        swipeStartX = e.touches[0].clientX; swipeStartY = e.touches[0].clientY;
+      }
     }
   }, {passive:true});
   rotator.addEventListener('touchmove', (e)=>{
@@ -2172,18 +2186,34 @@ function enableRotatorZoom(rotator){
       panX = dragStartPanX + moveY;
       panY = dragStartPanY - moveX;
       apply(false);
+    } else if(e.touches.length===1 && mode==='tap'){
+      const t = e.touches[0];
+      const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
+      if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)*1.2) mode='dismiss';
+      if(mode==='dismiss' && dy>0){ e.preventDefault(); applyDismiss(dy, false); }
+    } else if(e.touches.length===1 && mode==='dismiss'){
+      const t = e.touches[0]; const dy = t.clientY-swipeStartY;
+      if(dy>0){ e.preventDefault(); applyDismiss(dy, false); }
     }
   }, {passive:false});
   rotator.addEventListener('touchend', (e)=>{
+    if(mode==='dismiss'){
+      const t = e.changedTouches[0]; const dy = t.clientY-swipeStartY;
+      if(dy>110){ applyDismiss(window.innerHeight, true); setTimeout(()=>{ if(overlay) overlay.remove(); }, 220); }
+      else { applyDismiss(0, true); }
+      mode=null;
+      return;
+    }
     if(e.touches.length===0){
       dragging = false;
       const now = Date.now();
-      if(now - lastTap < 300){
+      if(mode==='tap' && now - lastTap < 300){
         scale = scale>1 ? 1 : 2.2;
         if(scale===1){ panX=0; panY=0; }
         apply();
       }
       lastTap = now;
+      mode=null;
     }
   });
 }
@@ -2347,20 +2377,29 @@ async function viewSavedComparison(id){
 }
 function attachSimpleZoomPan(wrap, img){
   if(!wrap || !img) return;
+  const overlay = wrap.closest('.landscape-overlay') || wrap.parentElement;
   img.style.transition = 'none';
   wrap.style.touchAction = 'none';
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1, startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
   let mode=null, lastTap=0;
+  let swipeStartX=0, swipeStartY=0;
   function apply(smooth){
     img.style.transition = smooth ? 'transform .12s ease' : 'none';
     img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+  function applyDismiss(dy, smooth){
+    if(!overlay) return;
+    overlay.style.transition = smooth ? 'transform .22s ease, opacity .22s ease' : 'none';
+    overlay.style.transform = `translateY(${dy}px)`;
+    overlay.style.opacity = String(Math.max(0.25, 1 - Math.abs(dy)/400));
+  }
   wrap.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){ mode='pinch'; startDist=dist(e.touches); startScale=scale; }
     else if(e.touches.length===1){
       const t=e.touches[0];
+      swipeStartX = t.clientX; swipeStartY = t.clientY;
       if(scale>1){ mode='pan'; startTouchX=t.clientX; startTouchY=t.clientY; startPanX=panX; startPanY=panY; }
       else { mode='tap'; }
     }
@@ -2376,13 +2415,27 @@ function attachSimpleZoomPan(wrap, img){
       panX = startPanX + (t.clientX-startTouchX);
       panY = startPanY + (t.clientY-startTouchY);
       apply(false);
+    } else if(mode==='tap' && e.touches.length===1){
+      const t=e.touches[0];
+      const dx=t.clientX-swipeStartX, dy=t.clientY-swipeStartY;
+      if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)*1.2) mode='dismiss';
+      if(mode==='dismiss' && dy>0){ e.preventDefault(); applyDismiss(dy, false); }
+    } else if(mode==='dismiss' && e.touches.length===1){
+      const t=e.touches[0]; const dy=t.clientY-swipeStartY;
+      if(dy>0){ e.preventDefault(); applyDismiss(dy, false); }
     }
   }, {passive:false});
-  wrap.addEventListener('touchend', ()=>{
-    if(mode==='tap'){
+  wrap.addEventListener('touchend', (e)=>{
+    if(mode==='dismiss'){
+      const t=e.changedTouches[0]; const dy=t.clientY-swipeStartY;
+      if(dy>110){ applyDismiss(window.innerHeight, true); setTimeout(()=>{ if(overlay) overlay.remove(); }, 220); }
+      else { applyDismiss(0, true); }
+    } else if(mode==='tap'){
       const now = Date.now();
       if(now-lastTap<300){ scale = scale>1 ? 1 : 2.2; panX=0; panY=0; apply(true); }
       lastTap = now;
+    } else if(mode==='pinch' || mode==='pan'){
+      if(scale<=1.02){ scale=1; panX=0; panY=0; apply(true); }
     }
     mode=null;
   });
@@ -3100,6 +3153,11 @@ function attachLightboxGestures(){
         setTimeout(()=> closeLightbox(), 220);
       } else {
         applyDismiss(0, true);
+      }
+    } else if(mode==='pinch' || mode==='pan'){
+      if(scale<=1.02){
+        scale = 1; panX = 0; panY = 0;
+        apply(true);
       }
     } else if(mode==='swipe'){
       const t = e.changedTouches[0];
