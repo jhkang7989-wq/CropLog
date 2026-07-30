@@ -494,7 +494,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v54 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v55 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -2384,7 +2384,23 @@ function attachSimpleZoomPan(wrap, img){
   let startDist=0, startScale=1, startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
   let mode=null, lastTap=0;
   let swipeStartX=0, swipeStartY=0;
+  function getRenderSize(){
+    const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+    const cw = wrap.clientWidth, ch = wrap.clientHeight;
+    const ir = iw/ih, cr = cw/ch;
+    if(ir > cr) return { rw: cw, rh: cw/ir };
+    return { rw: ch*ir, rh: ch };
+  }
+  function clampPan(){
+    const {rw, rh} = getRenderSize();
+    const cw = wrap.clientWidth, ch = wrap.clientHeight;
+    const maxX = Math.max(0, (rw*scale - cw)/2);
+    const maxY = Math.max(0, (rh*scale - ch)/2);
+    panX = Math.min(maxX, Math.max(-maxX, panX));
+    panY = Math.min(maxY, Math.max(-maxY, panY));
+  }
   function apply(smooth){
+    clampPan();
     img.style.transition = smooth ? 'transform .12s ease' : 'none';
     img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
@@ -3087,7 +3103,23 @@ function attachLightboxGestures(){
   let mode=null; // 'pinch' | 'pan' | 'swipe' | 'dismiss'
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
+  function getRenderSize(){
+    const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
+    const cw = wrap.clientWidth, ch = wrap.clientHeight;
+    const ir = iw/ih, cr = cw/ch;
+    if(ir > cr) return { rw: cw, rh: cw/ir };
+    return { rw: ch*ir, rh: ch };
+  }
+  function clampPan(){
+    const {rw, rh} = getRenderSize();
+    const cw = wrap.clientWidth, ch = wrap.clientHeight;
+    const maxX = Math.max(0, (rw*scale - cw)/2);
+    const maxY = Math.max(0, (rh*scale - ch)/2);
+    panX = Math.min(maxX, Math.max(-maxX, panX));
+    panY = Math.min(maxY, Math.max(-maxY, panY));
+  }
   function apply(smooth){
+    clampPan();
     img.style.transition = smooth ? 'transform .12s ease' : 'none';
     img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
