@@ -403,7 +403,7 @@
       </div>
 
       <div id="favSection">
-        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg> 즐겨찾는 시교</div>
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg> 즐겨찾기</div>
         <div id="favRow" class="pin-row"></div>
       </div>
 
@@ -413,7 +413,7 @@
       </div>
 
       <div id="recentSection">
-        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg> 전체 시교 <span class="link" onclick="go('alllist')">정렬해서 보기</span></div>
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg> 품목별 목록 <span class="link" onclick="go('alllist')">정렬해서 보기</span></div>
         <div id="recentList"></div>
       </div>
     </main>
@@ -424,7 +424,7 @@
   <section id="view-alllist" class="hidden">
     <header class="topbar">
       <button class="back" onclick="go('home')">‹ 홈</button>
-      <h1>전체 시교 목록</h1>
+      <h1>전체 목록</h1>
       <span style="width:24px;"></span>
     </header>
     <main>
@@ -465,27 +465,17 @@
             <span class="link" onclick="signOutGoogle()">로그아웃</span>
           </div>
           <div id="syncStatusText" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+          <div id="syncProgressBox" class="hidden" style="margin-top:12px;">
+            <div class="progress-bar-track"><div class="progress-bar-fill" id="syncProgressFill"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px;">
+              <span id="syncProgressLabel">준비 중...</span>
+              <span id="syncProgressPct">0%</span>
+            </div>
+            <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0 0;">다른 화면으로 이동해도 계속 진행돼요. 다만 화면을 끄거나 앱을 완전히 종료하면 작업이 멈춰요 — 켜둔 채로 기다려주세요.</p>
+            <button class="btn btn-ghost" style="margin-top:8px;" onclick="cancelSyncOperation()">작업 취소</button>
+          </div>
         </div>
       </div>
-
-      <div id="syncProgressBox" class="hidden" style="margin-bottom:22px;">
-        <div class="progress-bar-track"><div class="progress-bar-fill" id="syncProgressFill"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px;">
-          <span id="syncProgressLabel">준비 중...</span>
-          <span id="syncProgressPct">0%</span>
-        </div>
-        <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0 0;">다른 화면으로 이동해도 계속 진행돼요. 다만 화면을 끄거나 앱을 완전히 종료하면 작업이 멈춰요 — 켜둔 채로 기다려주세요.</p>
-        <button class="btn btn-ghost" style="margin-top:8px;" onclick="cancelSyncOperation()">작업 취소</button>
-      </div>
-
-      <div class="section-title">기기에 백업</div>
-      <p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin:-4px 0 12px;">구글 로그인 없이, 모든 데이터(품목·시교·사진·메모·일정)를 파일 하나로 이 기기에 저장하거나 불러와요. 브라우저 데이터가 지워지기 전에 미리 저장해두면 안전해요.</p>
-      <div id="localBackupStatusText" style="font-size:11px;color:var(--muted);text-align:center;margin:-4px 0 8px;"></div>
-      <div class="btn-row" style="margin-bottom:22px;">
-        <button class="btn btn-ghost" onclick="pickLocalBackupFile()">백업 파일 불러오기</button>
-        <button class="btn btn-primary" onclick="exportBackupToFile()">백업 파일 저장하기</button>
-      </div>
-      <input type="file" id="localBackupFileInput" accept="application/json,.json" class="hidden" onchange="importBackupFromFile(event)">
 
       <button class="btn btn-dark" style="margin-bottom:22px;" onclick="exportCSV()">
         <svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><polyline points="7,11 12,16 17,11"/><path d="M4 19h16"/></svg>
@@ -511,7 +501,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v59 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v60 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1142,11 +1132,6 @@ async function go(view, arg, fromPopstate){
       const statusEl = document.getElementById('syncStatusText');
       if(statusEl) statusEl.textContent = `마지막 백업: ${new Date(lastMeta.value).toLocaleString('ko-KR')}`;
     }
-    const lastLocalMeta = await idbGet('meta','lastLocalBackupAt');
-    if(lastLocalMeta && lastLocalMeta.value){
-      const localStatusEl = document.getElementById('localBackupStatusText');
-      if(localStatusEl) localStatusEl.textContent = `마지막 백업 파일 저장: ${new Date(lastLocalMeta.value).toLocaleString('ko-KR')}`;
-    }
     if(appSettings.syncEnabled) trySilentGoogleSignIn();
   }
   if(view==='newtrial'){ await renderNewTrialForm(); }
@@ -1258,7 +1243,7 @@ async function renderHome(){
   const favRow = document.getElementById('favRow');
   const favTrials = trials.filter(t=>favIds.includes(t.id));
   if(favTrials.length===0){
-    favRow.innerHTML = '<p class="empty" style="width:100%;">아직 즐겨찾는 시교가 없어요. 시교 상세에서 별표를 눌러 추가해보세요.</p>';
+    favRow.innerHTML = '<p class="empty" style="width:100%;">아직 즐겨찾기한 시교가 없어요. 시교 상세에서 별표를 눌러 추가해보세요.</p>';
   } else {
     favRow.innerHTML = favTrials.map(t=>{
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
@@ -2170,7 +2155,16 @@ function enableRotatorZoom(rotator){
   rotator.style.transition = 'transform .15s ease';
   rotator.style.touchAction = 'none';
   function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+  function clampPan(){
+    // 로컬(회전 전) 좌표계 기준: rotator 크기는 항상 100vh x 100vw
+    const localW = window.innerHeight, localH = window.innerWidth;
+    const maxX = Math.max(0, (localW*scale - localW)/2);
+    const maxY = Math.max(0, (localH*scale - localH)/2);
+    panX = Math.min(maxX, Math.max(-maxX, panX));
+    panY = Math.min(maxY, Math.max(-maxY, panY));
+  }
   function apply(withTransition){
+    clampPan();
     rotator.style.transition = withTransition===false ? 'none' : 'transform .15s ease';
     rotator.style.transform = `rotate(90deg) translate(${panX}px, ${panY}px) scale(${scale})`;
   }
@@ -4014,57 +4008,6 @@ function makeProgressTracker(totalSteps, silent){
     if(!silent) updateSyncProgress(pct, `${label}${remainLabel? ' · '+remainLabel:''}`);
   };
 }
-function throwIfCancelled(){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); }
-async function fetchAllStores(){
-  const [crops, trials, photos, notes, metaAll, comparisons, schedules] = await Promise.all([
-    idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
-  ]);
-  return {crops, trials, photos, notes, metaAll, comparisons, schedules};
-}
-// IndexedDB에 든 사진/비교이미지 Blob을 base64로 바꿔 하나의 JSON(백업 파일)으로 합침.
-// 구글 드라이브 백업과 기기 로컬 백업 파일 저장이 이 형식을 그대로 공유함.
-async function buildBackupPayload(stores, bump, setStatus){
-  const {crops, trials, photos, notes, metaAll, comparisons, schedules} = stores;
-  const photosOut = [];
-  for(let i=0;i<photos.length;i++){
-    throwIfCancelled();
-    const p = photos[i];
-    if(setStatus) setStatus(`사진 변환 중 (${i+1}/${photos.length})`);
-    const b64 = await blobToBase64(p.blob);
-    photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
-    bump(`사진 변환 중 (${i+1}/${photos.length})`);
-  }
-  const comparisonsOut = [];
-  for(const c of comparisons){
-    throwIfCancelled();
-    const b64 = await blobToBase64(c.blob);
-    comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
-    bump('비교 이미지 변환 중');
-  }
-  return { version:3, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut, schedules };
-}
-// 백업 JSON을 다시 IndexedDB에 채워넣음(기존 데이터는 전부 덮어씀). 드라이브 복원과 로컬 파일 복원이 공유.
-async function applyBackupPayload(backup, bump){
-  await idbClearAll();
-  for(const c of backup.crops||[]){ throwIfCancelled(); await idbPut('crops', c); bump('복원 중'); }
-  for(const t of backup.trials||[]){ throwIfCancelled(); await idbPut('trials', t); bump('복원 중'); }
-  for(const n of backup.notes||[]){ throwIfCancelled(); await idbPut('notes', n); bump('복원 중'); }
-  for(const m of backup.meta||[]){ throwIfCancelled(); await idbPut('meta', m); bump('복원 중'); }
-  for(const p of backup.photos||[]){
-    throwIfCancelled();
-    const blob = base64ToBlob(p.data, p.mime);
-    await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
-    bump('사진 복원 중');
-  }
-  for(const c of backup.comparisons||[]){
-    throwIfCancelled();
-    const blob = base64ToBlob(c.data, c.mime);
-    await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
-    bump('비교 이미지 복원 중');
-  }
-  for(const s of backup.schedules||[]){ throwIfCancelled(); await idbPut('schedules', s); bump('복원 중'); }
-  await loadSettings();
-}
 async function performBackup(silent){
   if(syncOperationActive){ if(!silent) toast('이미 백업이 진행 중이에요'); return false; }
   syncOperationActive = true;
@@ -4074,8 +4017,9 @@ async function performBackup(silent){
   try{
     setStatus('백업 준비 중...');
     const token = await getValidToken();
-    const stores = await fetchAllStores();
-    const {trials} = stores;
+    const [crops, trials, photos, notes, metaAll, comparisons, schedules] = await Promise.all([
+      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
+    ]);
 
     // 안전장치: 로컬에 시교가 하나도 없는데 예전 백업은 있는 상태라면, 실수로 빈 데이터를 덮어쓰는 걸 막음
     if(trials.length===0){
@@ -4091,12 +4035,29 @@ async function performBackup(silent){
       }
     }
 
-    const totalSteps = stores.photos.length + stores.comparisons.length + 1; // +1은 업로드 단계
+    const totalSteps = photos.length + comparisons.length + 1; // +1은 업로드 단계
     const bump = makeProgressTracker(totalSteps, silent);
-    const backup = await buildBackupPayload(stores, bump, setStatus);
+
+    const photosOut = [];
+    for(let i=0;i<photos.length;i++){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
+      const p = photos[i];
+      setStatus(`사진 변환 중 (${i+1}/${photos.length})`);
+      const b64 = await blobToBase64(p.blob);
+      photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
+      bump(`사진 변환 중 (${i+1}/${photos.length})`);
+    }
+    const comparisonsOut = [];
+    for(const c of comparisons){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
+      const b64 = await blobToBase64(c.blob);
+      comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
+      bump('비교 이미지 변환 중');
+    }
+    const backup = { version:3, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut, schedules };
     const json = JSON.stringify(backup);
 
-    throwIfCancelled();
+    if(syncCancelRequested) throw new Error('사용자가 취소했어요');
     setStatus('업로드 중...');
     if(!silent) updateSyncProgress(95, '업로드 중...');
     const filename = `${BACKUP_PREFIX}${Date.now()}.json`;
@@ -4220,11 +4181,29 @@ async function confirmRestoreFile(fileId, label){
     });
     if(!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
     const backup = await res.json();
-    throwIfCancelled();
+    if(syncCancelRequested) throw new Error('사용자가 취소했어요');
     statusEl.textContent = '복원 중...';
+    await idbClearAll();
     const totalSteps = (backup.crops||[]).length + (backup.trials||[]).length + (backup.notes||[]).length + (backup.meta||[]).length + (backup.photos||[]).length + (backup.comparisons||[]).length + (backup.schedules||[]).length + 1;
     const bump = makeProgressTracker(totalSteps, false);
-    await applyBackupPayload(backup, bump);
+    for(const c of backup.crops||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('crops', c); bump('복원 중'); }
+    for(const t of backup.trials||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('trials', t); bump('복원 중'); }
+    for(const n of backup.notes||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('notes', n); bump('복원 중'); }
+    for(const m of backup.meta||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('meta', m); bump('복원 중'); }
+    for(const p of backup.photos||[]){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
+      const blob = base64ToBlob(p.data, p.mime);
+      await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
+      bump(`사진 복원 중`);
+    }
+    for(const c of backup.comparisons||[]){
+      if(syncCancelRequested) throw new Error('사용자가 취소했어요');
+      const blob = base64ToBlob(c.data, c.mime);
+      await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
+      bump('비교 이미지 복원 중');
+    }
+    for(const s of backup.schedules||[]){ if(syncCancelRequested) throw new Error('사용자가 취소했어요'); await idbPut('schedules', s); bump('복원 중'); }
+    await loadSettings();
     bump('완료');
     updateSyncProgress(100, '완료');
     statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
@@ -4235,77 +4214,6 @@ async function confirmRestoreFile(fileId, label){
     statusEl.textContent = '';
     if(e.message==='사용자가 취소했어요') toast('복원을 취소했어요 — 데이터가 일부만 반영됐을 수 있어요');
     else toast(`복원에 실패했어요: ${e.message || e}`);
-  }finally{
-    syncOperationActive = false;
-    setTimeout(hideSyncProgress, 900);
-  }
-}
-
-/* ================= 기기 로컬 백업 파일 (구글 로그인 불필요) ================= */
-async function exportBackupToFile(){
-  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
-  syncOperationActive = true;
-  showSyncProgress();
-  try{
-    const stores = await fetchAllStores();
-    const totalSteps = stores.photos.length + stores.comparisons.length + 1;
-    const bump = makeProgressTracker(totalSteps, false);
-    const backup = await buildBackupPayload(stores, bump);
-    const json = JSON.stringify(backup);
-    updateSyncProgress(95, '파일 저장 중...');
-    const blob = new Blob([json], {type:'application/json'});
-    const filename = `CropLog_백업_${todayStr()}.json`;
-    if(isNativeApp()){
-      await nativeShareBlob(blob, filename, 'CropLog 백업 파일');
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-    }
-    await idbPut('meta', {key:'lastLocalBackupAt', value: Date.now()});
-    updateSyncProgress(100, '완료');
-    const localStatusEl = document.getElementById('localBackupStatusText');
-    if(localStatusEl) localStatusEl.textContent = `마지막 백업 파일 저장: ${new Date().toLocaleString('ko-KR')}`;
-    toast('백업 파일을 저장했어요');
-  }catch(e){
-    console.error(e);
-    toast(`백업 파일 저장에 실패했어요: ${e.message || e}`);
-  }finally{
-    syncOperationActive = false;
-    setTimeout(hideSyncProgress, 900);
-  }
-}
-function pickLocalBackupFile(){
-  document.getElementById('localBackupFileInput').click();
-}
-async function importBackupFromFile(event){
-  const file = event.target.files && event.target.files[0];
-  event.target.value = '';
-  if(!file) return;
-  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
-  const ok = await showConfirm({
-    title:'백업 파일에서 복원',
-    message:`"${file.name}" 파일로 복원할까요?\n지금 이 기기에 있는 데이터는 파일 내용으로 덮어써져요.`,
-    confirmLabel:'복원', danger:true
-  });
-  if(!ok) return;
-  syncOperationActive = true;
-  showSyncProgress();
-  try{
-    updateSyncProgress(5, '파일 읽는 중...');
-    const text = await file.text();
-    const backup = JSON.parse(text);
-    const totalSteps = (backup.crops||[]).length + (backup.trials||[]).length + (backup.notes||[]).length + (backup.meta||[]).length + (backup.photos||[]).length + (backup.comparisons||[]).length + (backup.schedules||[]).length + 1;
-    const bump = makeProgressTracker(totalSteps, false);
-    await applyBackupPayload(backup, bump);
-    bump('완료');
-    updateSyncProgress(100, '완료');
-    toast('복원 완료했어요');
-    go('home');
-  }catch(e){
-    console.error(e);
-    toast(`복원에 실패했어요: ${e.message || e}`);
   }finally{
     syncOperationActive = false;
     setTimeout(hideSyncProgress, 900);
@@ -4379,6 +4287,30 @@ document.addEventListener('contextmenu', (e)=>{
   if(e.target && e.target.tagName==='IMG') e.preventDefault();
 });
 
+/* ================= 폰을 가로로 기울이면 성장비교/품종비교를 자동으로 가로 확대 ================= */
+function handleAutoLandscape(isLandscape){
+  const overlayOpen = !!document.getElementById('landscapeOverlay');
+  if(isLandscape){
+    if(overlayOpen) return;
+    const activeSection = document.querySelector('#app > section:not(.hidden)');
+    if(!activeSection) return;
+    if(activeSection.id==='view-detail'){
+      const compareTabOn = document.getElementById('detailTabCompare')?.classList.contains('active');
+      if(compareTabOn) openDetailCompareLandscape();
+    } else if(activeSection.id==='view-xcompare'){
+      openXCompareLandscape();
+    }
+  } else if(overlayOpen){
+    removeIfExists('landscapeOverlay');
+  }
+}
+if(window.matchMedia){
+  const orientMq = window.matchMedia('(orientation: landscape)');
+  const onOrientChange = (e)=> handleAutoLandscape(e.matches);
+  if(orientMq.addEventListener) orientMq.addEventListener('change', onOrientChange);
+  else if(orientMq.addListener) orientMq.addListener(onOrientChange); // 구형 브라우저 호환
+}
+
 if('serviceWorker' in navigator){
   if(isNativeApp()){
     // 네이티브 앱 안에서는 서비스워커가 필요 없고, 오히려 예전 버전을 계속 캐시해서 보여주는 원인이 될 수 있어
@@ -4395,9 +4327,6 @@ if('serviceWorker' in navigator){
     });
   }
 }
-
-// 저장 공간이 부족할 때 브라우저가 이 앱 데이터를 먼저 비우지 않도록 영속 저장소로 요청
-if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 
 openDB().then(async ()=>{
   await loadSettings();
