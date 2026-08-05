@@ -509,7 +509,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v63 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v64 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -568,7 +568,7 @@
       </div>
       <div class="help-card">
         <div class="help-title">⑨ 작황조사 캘린더</div>
-        <p>하단 "캘린더" 탭에서 방문 일정을 관리해요. 날짜를 눌러 일정을 등록할 수 있고, 대상은 등록된 시교를 검색해서 고르거나 직접 입력할 수 있어요. 좌우로 스와이프하면 월이 넘어가고, 날짜 칸엔 그날 일정이 최대 3개까지 표시돼요. "캘린더에 추가"를 누르면 일정 파일이 만들어지고, 폰에 있는 원하는 캘린더 앱(구글 캘린더, 삼성 캘린더 등)을 골라 추가해서 그쪽 알림을 받을 수 있어요. 설정에서 "오늘 방문 예정 일정 알림"을 켜두면 앱을 열 때 오늘 일정 개수를 알려줘요.</p>
+        <p>하단 "캘린더" 탭에서 방문 일정을 관리해요. 날짜를 눌러 일정을 등록할 수 있고, 대상은 등록된 시교를 검색해서 고르거나 직접 입력할 수 있어요. 좌우로 스와이프하면 월이 넘어가고, 날짜 칸엔 그날 일정이 최대 3개까지 표시돼요. "캘린더에 추가"를 누르면 구글 캘린더에도 저장해서 그쪽 알림을 받을 수 있고, 설정에서 "오늘 방문 예정 일정 알림"을 켜두면 앱을 열 때 오늘 일정 개수를 알려줘요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">⑩ 구글 동기화 (백업/복원)</div>
@@ -2033,7 +2033,7 @@ function renderScheduleItemHtml(s){
       <div class="sched-body">
         <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
         <div class="sched-sub">${s.time? s.time+' · ':''}${escapeHtml(s.purpose||'')}</div>
-        <div style="margin-top:7px;"><a href="javascript:void(0)" onclick="downloadScheduleICS('${s.id}')" class="cal-add-btn">${icon('calendarPlus',13)} 캘린더에 추가</a></div>
+        <div style="margin-top:7px;"><a href="${googleCalendarUrl(s)}" target="_blank" rel="noopener" class="cal-add-btn">${icon('calendarPlus',13)} 캘린더에 추가</a></div>
       </div>
       <div class="sched-actions">
         <button class="action" style="color:var(--muted);" onclick="closeModal('dayModal'); openScheduleModal('${s.date}','${s.id}')">${icon('edit',15)}</button>
@@ -2041,49 +2041,24 @@ function renderScheduleItemHtml(s){
       </div>
     </div>`;
 }
-function buildICSContent(s){
+function googleCalendarUrl(s){
   const startDate = s.date.replace(/-/g,'');
-  let dtstart, dtend, valueDate = '';
+  let datesParam;
   if(s.time){
     const [hh,mm] = s.time.split(':');
-    dtstart = `${startDate}T${hh}${mm}00`;
+    const startDT = `${startDate}T${hh}${mm}00`;
     const endObj = new Date(`${s.date}T${s.time}:00`);
     endObj.setHours(endObj.getHours()+1);
-    dtend = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}T${pad2(endObj.getHours())}${pad2(endObj.getMinutes())}00`;
+    const endDT = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}T${pad2(endObj.getHours())}${pad2(endObj.getMinutes())}00`;
+    datesParam = `${startDT}/${endDT}`;
   } else {
-    valueDate = ';VALUE=DATE';
-    dtstart = startDate;
     const endObj = new Date(s.date+'T00:00:00'); endObj.setDate(endObj.getDate()+1);
-    dtend = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}`;
+    const endDate = `${endObj.getFullYear()}${pad2(endObj.getMonth()+1)}${pad2(endObj.getDate())}`;
+    datesParam = `${startDate}/${endDate}`;
   }
-  const esc = (str)=> String(str||'').replace(/[\r\n]+/g,' ').replace(/([,;])/g, '\\$1');
-  const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//CropLog//Schedule//KO',
-    'BEGIN:VEVENT',
-    `UID:${s.id}@croplog`,
-    `DTSTAMP:${dtstamp}`,
-    `DTSTART${valueDate}:${dtstart}`,
-    `DTEND${valueDate}:${dtend}`,
-    `SUMMARY:${esc(s.targetText||'방문 일정')}`,
-    s.purpose ? `DESCRIPTION:${esc(s.purpose)}` : '',
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ].filter(Boolean).join('\r\n');
-}
-async function downloadScheduleICS(id){
-  const s = await idbGet('schedules', id);
-  if(!s) return;
-  const ics = buildICSContent(s);
-  if(isNativeApp()){
-    const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
-    await nativeShareBlob(blob, 'schedule.ics', '캘린더에 추가');
-    return;
-  }
-  // 다운로드 폴더를 거치지 않고, 폰이 바로 캘린더 앱 선택창을 띄우도록 data URI로 직접 이동
-  window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+  const text = encodeURIComponent(s.targetText||'방문 일정');
+  const details = encodeURIComponent(s.purpose||'');
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${datesParam}&details=${details}`;
 }
 async function toggleScheduleDone(id){
   const s = await idbGet('schedules', id);
