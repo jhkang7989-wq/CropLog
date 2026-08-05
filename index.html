@@ -477,6 +477,14 @@
         </div>
       </div>
 
+      <div class="section-title">기기 백업/복원</div>
+      <p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin:-6px 0 12px;">구글 로그인 없이, 이 기기에 파일로 백업하고 불러올 수 있어요. 매번 같은 파일 이름으로 저장되니, 다시 백업하면 이전 파일을 덮어써요.</p>
+      <div class="btn-row" style="margin-bottom:22px;">
+        <button class="btn btn-ghost" onclick="document.getElementById('localRestoreInput').click()">기기에서 복원</button>
+        <button class="btn btn-primary" onclick="backupToDevice()">기기에 백업 저장</button>
+      </div>
+      <input type="file" id="localRestoreInput" accept="application/json,.json" style="display:none" onchange="restoreFromDeviceFile(event)">
+
       <button class="btn btn-dark" style="margin-bottom:22px;" onclick="exportCSV()">
         <svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><polyline points="7,11 12,16 17,11"/><path d="M4 19h16"/></svg>
         전체 시교 목록 CSV로 내보내기
@@ -501,7 +509,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v60 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v61 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -1604,7 +1612,7 @@ async function createTrial(){
   const transplantDate = document.getElementById('ntTransplantDate').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('nt');
-  if(!seg || !name || !region || !growerName){ toast('SEG·제품/시교명·지역·성함을 입력해주세요'); return; }
+  if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
 
   let cropId = selectedCropId;
   if(useCustomCrop){
@@ -1704,7 +1712,7 @@ async function saveTrialEdit(){
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('editTrial');
-  if(!seg || !name || !region || !growerName){ toast('SEG·제품/시교명·지역·성함을 입력해주세요'); return; }
+  if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
   const t = await idbGet('trials', currentTrialId);
   t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
   delete t.fieldAddress;
@@ -4101,6 +4109,123 @@ async function performBackup(silent){
   }
 }
 async function backupToDrive(){ return performBackup(false); }
+
+/* ================= 기기 로컬 백업/복원 (구글 로그인 불필요) ================= */
+async function backupToDevice(){
+  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
+  syncOperationActive = true;
+  showSyncProgress();
+  const statusEl = document.getElementById('syncStatusText');
+  const setStatus = (msg)=>{ if(statusEl) statusEl.textContent = msg; };
+  try{
+    setStatus('백업 준비 중...');
+    const [crops, trials, photos, notes, metaAll, comparisons, schedules] = await Promise.all([
+      idbGetAll('crops'), idbGetAll('trials'), idbGetAll('photos'), idbGetAll('notes'), idbGetAll('meta'), idbGetAll('comparisons'), idbGetAll('schedules')
+    ]);
+    if(trials.length===0){
+      const proceed = await showConfirm({
+        title:'빈 데이터 백업 주의',
+        message:'지금 이 기기에 등록된 시교가 하나도 없어요.\n이 상태로 백업하면 예전에 저장해둔 백업 파일을 빈 내용으로 덮어쓸 수 있어요. 정말 진행할까요?',
+        confirmLabel:'그래도 백업', danger:true
+      });
+      if(!proceed){ setStatus(''); return; }
+    }
+    const totalSteps = photos.length + comparisons.length + 1;
+    const bump = makeProgressTracker(totalSteps, false);
+    const photosOut = [];
+    for(let i=0;i<photos.length;i++){
+      const p = photos[i];
+      setStatus(`사진 변환 중 (${i+1}/${photos.length})`);
+      const b64 = await blobToBase64(p.blob);
+      photosOut.push({id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, mime:p.blob.type||'image/jpeg', data:b64});
+      bump(`사진 변환 중 (${i+1}/${photos.length})`);
+    }
+    const comparisonsOut = [];
+    for(const c of comparisons){
+      const b64 = await blobToBase64(c.blob);
+      comparisonsOut.push({id:c.id, scope:c.scope, trialId:c.trialId||null, createdAt:c.createdAt, mime:c.blob.type||'image/png', data:b64});
+      bump('비교 이미지 변환 중');
+    }
+    const backup = { version:3, exportedAt: Date.now(), crops, trials, notes, meta: metaAll, photos: photosOut, comparisons: comparisonsOut, schedules };
+    const json = JSON.stringify(backup);
+    setStatus('파일 저장 중...');
+    updateSyncProgress(95, '파일 저장 중...');
+    const blob = new Blob([json], {type:'application/json'});
+    if(isNativeApp()){
+      await nativeShareBlob(blob, 'croplog-backup.json', 'CropLog 백업 파일');
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'croplog-backup.json'; // 항상 같은 파일명 — 다시 저장하면 기존 파일을 덮어씀
+      a.click();
+    }
+    bump('완료');
+    updateSyncProgress(100, '완료');
+    await idbPut('meta', {key:'lastLocalBackupAt', value: Date.now()});
+    setStatus(`마지막 기기 백업: ${new Date().toLocaleString('ko-KR')}`);
+    toast('기기에 백업 파일을 저장했어요');
+  }catch(e){
+    console.error(e);
+    setStatus('');
+    showStorageError(e);
+  }finally{
+    syncOperationActive = false;
+    setTimeout(hideSyncProgress, 900);
+  }
+}
+async function restoreFromDeviceFile(event){
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  const ok = await showConfirm({
+    title:'기기 파일로 복원',
+    message:`"${file.name}" 파일로 복원할까요?\n지금 이 기기에 있는 데이터는 그 파일 내용으로 덮어써져요.`,
+    confirmLabel:'복원', danger:true
+  });
+  if(!ok) return;
+  if(syncOperationActive){ toast('이미 다른 백업/복원 작업이 진행 중이에요'); return; }
+  syncOperationActive = true;
+  showSyncProgress();
+  const statusEl = document.getElementById('syncStatusText');
+  try{
+    statusEl.textContent = '파일 읽는 중...';
+    updateSyncProgress(5, '파일 읽는 중...');
+    const text = await file.text();
+    const backup = JSON.parse(text);
+    statusEl.textContent = '복원 중...';
+    await idbClearAll();
+    const totalSteps = (backup.crops||[]).length + (backup.trials||[]).length + (backup.notes||[]).length + (backup.meta||[]).length + (backup.photos||[]).length + (backup.comparisons||[]).length + (backup.schedules||[]).length + 1;
+    const bump = makeProgressTracker(totalSteps, false);
+    for(const c of backup.crops||[]) { await idbPut('crops', c); bump('복원 중'); }
+    for(const t of backup.trials||[]) { await idbPut('trials', t); bump('복원 중'); }
+    for(const n of backup.notes||[]) { await idbPut('notes', n); bump('복원 중'); }
+    for(const m of backup.meta||[]) { await idbPut('meta', m); bump('복원 중'); }
+    for(const p of backup.photos||[]){
+      const blob = base64ToBlob(p.data, p.mime);
+      await idbPut('photos', {id:p.id, trialId:p.trialId, date:p.date, createdAt:p.createdAt, blob});
+      bump('사진 복원 중');
+    }
+    for(const c of backup.comparisons||[]){
+      const blob = base64ToBlob(c.data, c.mime);
+      await idbPut('comparisons', {id:c.id, scope:c.scope, trialId:c.trialId, createdAt:c.createdAt, blob});
+      bump('비교 이미지 복원 중');
+    }
+    for(const s of backup.schedules||[]) { await idbPut('schedules', s); bump('복원 중'); }
+    await loadSettings();
+    bump('완료');
+    updateSyncProgress(100, '완료');
+    statusEl.textContent = `마지막 복원: ${new Date().toLocaleString('ko-KR')}`;
+    toast('복원 완료했어요');
+    go('home');
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = '';
+    toast(`복원에 실패했어요: ${e.message || e}`);
+  }finally{
+    syncOperationActive = false;
+    setTimeout(hideSyncProgress, 900);
+  }
+}
 async function autoBackupCheckAndRun(){
   if(!appSettings.syncEnabled) return;
   if(!ensureTokenClient()) return;
