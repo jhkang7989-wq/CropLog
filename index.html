@@ -509,7 +509,7 @@
       <div class="settings-group" style="margin-top:22px;">
         <div class="settings-row" onclick="confirmResetData()"><span style="color:var(--danger);">전체 데이터 초기화</span><span class="chev">›</span></div>
       </div>
-      <div class="app-version">CropLog v62 · 로컬 저장 모드</div>
+      <div class="app-version">CropLog v63 · 로컬 저장 모드</div>
     </main>
   </section>
 
@@ -2077,16 +2077,13 @@ async function downloadScheduleICS(id){
   const s = await idbGet('schedules', id);
   if(!s) return;
   const ics = buildICSContent(s);
-  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
   if(isNativeApp()){
+    const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
     await nativeShareBlob(blob, 'schedule.ics', '캘린더에 추가');
     return;
   }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'schedule.ics';
-  a.click();
-  toast('일정 파일을 열어서 원하는 캘린더 앱에 추가해보세요');
+  // 다운로드 폴더를 거치지 않고, 폰이 바로 캘린더 앱 선택창을 띄우도록 data URI로 직접 이동
+  window.location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
 }
 async function toggleScheduleDone(id){
   const s = await idbGet('schedules', id);
