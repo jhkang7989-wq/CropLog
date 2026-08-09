@@ -212,6 +212,7 @@
   .btn-dark{background:var(--leaf-dark);color:#fff;box-shadow:0 3px 8px rgba(31,62,57,0.28);}
   .btn-ghost{background:var(--paper);border:1px solid var(--line);color:var(--ink);}
   .btn-danger{background:#fbeceA;color:var(--danger);}
+  .btn-compact{padding:9px 13px;font-size:12.5px;border-radius:8px;box-shadow:none;}
   .btn-row{display:flex;gap:8px;}
   .timeline-action-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}
   .timeline-action-btn{
