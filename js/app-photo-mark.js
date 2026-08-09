@@ -77,7 +77,8 @@ function drawMarkShape(ctx, sh){
     drawMarkArrow(ctx, sh.x1, sh.y1, sh.x2, sh.y2);
   } else if(sh.type==='text'){
     ctx.font = `bold ${sh.fontSize||26}px sans-serif`;
-    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(sh.text, sh.x1, sh.y1);
   }
 }
@@ -150,9 +151,12 @@ function renderPendingShapeHandles(){
   const midX = (s.x1+s.x2)/2;
   let handlesHtml = '';
   if(s.type==='circle'){
-    handlesHtml += `<div class="shape-handle shape-handle-move" id="shMove" style="left:${s.x1}px;top:${s.y1}px;"></div>`;
+    const r = Math.hypot(s.x2-s.x1, s.y2-s.y1);
+    handlesHtml += `<div class="shape-move-zone" id="shMove" style="left:${s.x1-r}px;top:${s.y1-r}px;width:${r*2}px;height:${r*2}px;"></div>`;
     handlesHtml += `<div class="shape-handle" id="shResize" style="left:${s.x2}px;top:${s.y2}px;"></div>`;
   } else {
+    const midX2 = (s.x1+s.x2)/2, midY2 = (s.y1+s.y2)/2;
+    handlesHtml += `<div class="shape-move-mid" id="shMoveMid" style="left:${midX2}px;top:${midY2}px;"></div>`;
     handlesHtml += `<div class="shape-handle" id="shA" style="left:${s.x1}px;top:${s.y1}px;"></div>`;
     handlesHtml += `<div class="shape-handle" id="shB" style="left:${s.x2}px;top:${s.y2}px;"></div>`;
   }
@@ -191,6 +195,9 @@ function attachShapeHandleDrag(){
       s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
     });
   } else {
+    makeDraggable(document.getElementById('shMoveMid'), (dx,dy,orig)=>{
+      s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
+    });
     makeDraggable(document.getElementById('shA'), (dx,dy,orig)=>{ s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; });
     makeDraggable(document.getElementById('shB'), (dx,dy,orig)=>{ s.x2 = orig.x2+dx; s.y2 = orig.y2+dy; });
   }
@@ -238,7 +245,7 @@ function renderPendingTextEditor(){
 function attachPendingTextGestures(el){
   const textEl = el.querySelector('.mte-text');
   let mode = null; // 'move' | 'resize'
-  let startX=0, startY=0, startLeft=0, startTop=0, startSize=0;
+  let startX=0, startY=0, startLeft=0, startTop=0, startSize=0, startDist=0;
   textEl.addEventListener('touchstart', (e)=>{
     e.stopPropagation();
     mode = 'move';
@@ -250,7 +257,9 @@ function attachPendingTextGestures(el){
     e.stopPropagation();
     mode = 'resize';
     const t = e.touches[0];
-    startX = t.clientX; startY = t.clientY;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    startDist = Math.max(20, Math.hypot(t.clientX-cx, t.clientY-cy));
     startSize = pendingTextData.fontSize;
   }, {passive:true});
   el.addEventListener('touchmove', (e)=>{
@@ -261,8 +270,11 @@ function attachPendingTextGestures(el){
       pendingTextData.x = startLeft+dx; pendingTextData.y = startTop+dy;
       el.style.left = pendingTextData.x+'px'; el.style.top = pendingTextData.y+'px';
     } else if(mode==='resize'){
-      const dy = t.clientY-startY;
-      pendingTextData.fontSize = Math.max(12, Math.min(90, startSize + dy*0.6));
+      // 핸들을 텍스트 중심에서 멀리 끌면 커지고 가까이 끌면 작아짐 (대각선 방향 무관)
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      const curDist = Math.hypot(t.clientX-cx, t.clientY-cy);
+      pendingTextData.fontSize = Math.max(12, Math.min(90, startSize * (curDist/startDist)));
       el.style.fontSize = pendingTextData.fontSize+'px';
     }
   }, {passive:false});
@@ -330,6 +342,7 @@ async function saveMarking(){
       });
       toast('마킹한 사진을 저장했어요');
       removeIfExists('markOverlay');
+      closeLightbox();
       markState = null;
       if(currentTrialId) renderDetail(currentTrialId);
     }catch(e){

@@ -96,7 +96,7 @@ function initSavedCmpLongPress(row, scope){
     timer = setTimeout(()=>{
       fired=true;
       timer=null;
-      if(appSettings.feedback) vibrate([10,30,10]);
+      if(appSettings.feedback) vibrate(20);
       enterSavedCmpSelectMode(scope, thumb.dataset.cmpId);
     }, 500);
   }, {passive:true});
@@ -442,7 +442,7 @@ function tlTouchStart(e){
     tlLongPressTimer = null;
     tlLongPressFired = true;
     enterTimelineSelectMode(thumb.dataset.photoId);
-    if(appSettings.feedback) vibrate([10,30,10]);
+    if(appSettings.feedback) vibrate(20);
   }, 500);
 }
 function tlTouchEnd(){

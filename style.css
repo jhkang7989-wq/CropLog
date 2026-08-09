@@ -23,10 +23,10 @@
   .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
   @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
   .lightbox{ animation: lightboxIn .18s ease; }
-  .btn, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
+  .btn, .btn-mini, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
     transition: transform .12s ease, opacity .12s ease, background-color .15s ease;
   }
-  .btn:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
+  .btn:active, .btn-mini:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
     transform: scale(0.96); opacity:0.85;
   }
   .switch{ transition: background-color .18s ease; }
@@ -200,6 +200,8 @@
 
   .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:14px;}
   .toggle-row .label{font-size:12.5px;}
+  .toggle-row-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;}
+  .btn-mini{padding:5px 11px;border-radius:20px;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--cream);color:var(--leaf-dark);cursor:pointer;white-space:nowrap;}
   .switch{position:relative;width:40px;height:22px;background:var(--line);border-radius:20px;cursor:pointer;transition:background .2s;flex:0 0 auto;}
   .switch.on{background:var(--leaf);}
   .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;}
@@ -260,13 +262,14 @@
   .mark-canvas-inner{position:relative;}
   .mte{position:absolute;transform:translate(-50%,-50%);touch-action:none;white-space:nowrap;}
   .mte-text{font-weight:800;font-family:sans-serif;padding:2px 6px;border:1.5px dashed rgba(255,255,255,0.7);cursor:move;}
-  .mte-btn{position:absolute;top:-14px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
-  .mte-confirm{right:-14px;background:var(--leaf);}
-  .mte-cancel{left:-14px;background:#8a8275;}
-  .mte-resize{position:absolute;right:-8px;bottom:-8px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid var(--leaf);}
-  .shape-handle{position:absolute;width:24px;height:24px;margin-left:-12px;margin-top:-12px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--leaf);touch-action:none;}
-  .shape-handle-move{background:rgba(255,255,255,0.6);}
-  .shp-btn{position:absolute;width:26px;height:26px;margin-left:-13px;margin-top:-13px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:none;}
+  .mte-btn{position:absolute;top:-16px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
+  .mte-confirm{right:-16px;background:var(--leaf);}
+  .mte-cancel{left:-16px;background:#8a8275;}
+  .mte-resize{position:absolute;right:-17px;bottom:-17px;width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--leaf);}
+  .shape-move-zone{position:absolute;border-radius:50%;touch-action:none;border:1.5px dashed rgba(255,255,255,0.55);cursor:move;}
+  .shape-move-mid{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.35);border:1.5px dashed rgba(255,255,255,0.8);touch-action:none;}
+  .shape-handle{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--leaf);touch-action:none;}
+  .shp-btn{position:absolute;width:30px;height:30px;margin-left:-15px;margin-top:-15px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:none;}
   .mte-confirm.shp-btn, .shp-btn.mte-confirm{background:var(--leaf);}
   .mte-cancel.shp-btn, .shp-btn.mte-cancel{background:#8a8275;}
   #markCanvas{touch-action:none;border-radius:4px;}

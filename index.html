@@ -127,9 +127,11 @@
       <div class="section-title">일반 설정</div>
       <div class="toggle-row">
         <div class="label">저장 · 삭제 · 등록 시 진동 표시</div>
-        <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
+        <div class="toggle-row-actions">
+          <button class="btn-mini" onclick="rawToast('진동 피드백 테스트입니다')">테스트</button>
+          <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
+        </div>
       </div>
-      <button class="btn btn-ghost" style="margin-bottom:14px;" onclick="rawToast('진동 피드백 테스트입니다')">진동 테스트해보기</button>
       <div class="toggle-row">
         <div class="label">오늘 방문 예정 일정 알림</div>
         <div class="switch on" id="scheduleReminderSwitch" onclick="toggleScheduleReminderSetting()"><div class="knob"></div></div>
