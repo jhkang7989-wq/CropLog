@@ -28,15 +28,13 @@ async function renderNewTrialForm(){
   const crops = await idbGetAll('crops');
   const tiles = document.getElementById('cropTiles');
   tiles.innerHTML = crops.map(c=>{
-    const fg = textColorFor(c.color);
     return `<div class="crop-tile" data-id="${c.id}" onclick="selectCropTile('${c.id}', this)">
-      <div class="swatch" style="background:${c.color};color:${fg};">${c.name[0]}</div>
-      <div class="label">${c.name}</div>
+      <span class="swatch" style="background:${c.color};"></span>
+      <span class="label">${escapeHtml(c.name)}</span>
     </div>`;
   }).join('') + `
     <div class="crop-tile add" onclick="selectCustomCrop(this)">
-      <div class="swatch">+</div>
-      <div class="label">직접입력</div>
+      <span class="label">+ 직접입력</span>
     </div>`;
 }
 function pickCustomColor(col, el){
