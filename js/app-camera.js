@@ -25,18 +25,38 @@ async function startContinuousCamera(){
   renderCameraFilmstrip();
   try{
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      // 가로/세로를 둘 다 못박으면(특히 정사각형 비율) 카메라가 센서 일부만 잘라 쓰거나
-      // 다른 렌즈(망원 등)를 고를 수 있어 실제 카메라 앱보다 확대돼 보이는 원인이 됨.
-      // width만 제안하고 height/비율은 카메라가 자기 기본값(광각 풀 화각)을 쓰도록 비워둠.
       video: { facingMode:'environment', width:{ideal:1920} },
       audio: false
     });
+    // 폰마다 후면 카메라가 여러 개(메인/광각/망원)일 수 있는데, facingMode만으로는
+    // 브라우저가 어떤 렌즈를 고를지 보장이 안 됨(기종에 따라 초광각이 잡히기도 함).
+    // 권한을 받아 라벨이 채워진 뒤 목록에서 "메인" 렌즈로 추정되는 걸 다시 지정해봄.
+    const mainDeviceId = await pickMainRearCameraId();
+    if(mainDeviceId){
+      cameraStream.getTracks().forEach(t=>t.stop());
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId:{exact:mainDeviceId}, width:{ideal:1920} },
+        audio: false
+      });
+    }
     const video = document.getElementById('cameraVideo');
     if(video) video.srcObject = cameraStream;
   }catch(e){
     stopContinuousCamera();
     toast('연속 촬영을 시작할 수 없어요. 기본 카메라로 촬영할게요.');
     document.getElementById('cameraInput').click();
+  }
+}
+async function pickMainRearCameraId(){
+  try{
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const backCams = devices.filter(d=> d.kind==='videoinput' && d.label && !/front|user|selfie|facetime/i.test(d.label));
+    if(backCams.length<2) return null; // 후면 카메라가 1개뿐이면 고를 필요 없음
+    const notWideOrTele = /ultra|telephoto|periscope|0\.5x|2x|3x|5x|10x/i;
+    const main = backCams.find(d=> !notWideOrTele.test(d.label));
+    return main ? main.deviceId : null;
+  }catch(e){
+    return null;
   }
 }
 function captureCameraShot(){
