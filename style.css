@@ -97,10 +97,10 @@
   @keyframes calSlideInRight{ from{opacity:0; transform:translateX(-26px);} to{opacity:1; transform:translateX(0);} }
   .cal-grid.slide-in-left{ animation: calSlideInLeft .22s ease; }
   .cal-grid.slide-in-right{ animation: calSlideInRight .22s ease; }
-  .cal-day{min-height:70px;border-radius:8px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:4px 3px;font-size:11px;color:var(--ink);cursor:pointer;position:relative;background:var(--paper);border:1px solid var(--line);overflow:hidden;}
+  .cal-day{height:72px;border-radius:8px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:3px 3px;font-size:11px;color:var(--ink);cursor:pointer;position:relative;background:var(--paper);border:1px solid var(--line);overflow:hidden;}
   .cal-day.other-month{background:transparent;border-color:transparent;color:var(--line);}
   .cal-day.today{border:2px solid var(--ink);}
-  .cal-daynum{font-weight:800;text-align:center;margin-bottom:2px;}
+  .cal-daynum{font-weight:800;text-align:center;margin-bottom:1px;}
   .cal-day.today .cal-daynum{font-weight:900;}
   .cal-day.sun .cal-daynum{color:var(--danger);}
   .cal-day.sat .cal-daynum{color:var(--sat-blue);}
