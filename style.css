@@ -262,6 +262,21 @@
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
 
+  .camera-overlay{position:fixed;inset:0;background:#000;z-index:88;display:flex;flex-direction:column;overscroll-behavior:none;}
+  .camera-preview-wrap{flex:1;position:relative;overflow:hidden;background:#000;min-height:0;}
+  .camera-preview-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+  .camera-preview-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;animation:camFlash .25s ease-out;}
+  @keyframes camFlash{ from{opacity:0.85;} to{opacity:0;} }
+  .camera-hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:rgba(255,255,255,0.75);font-size:12px;pointer-events:none;}
+  .camera-filmstrip{display:flex;gap:6px;padding:8px 10px;overflow-x:auto;background:#141210;min-height:52px;}
+  .cam-film-thumb{position:relative;flex:0 0 auto;width:52px;height:52px;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.25);}
+  .cam-film-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .15s ease;}
+  .cam-film-thumb .rm{position:absolute;top:1px;right:1px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;display:flex;align-items:center;justify-content:center;}
+  .cam-film-thumb .rt{position:absolute;bottom:1px;left:1px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;display:flex;align-items:center;justify-content:center;}
+  .camera-shutter-row{display:flex;justify-content:center;align-items:center;padding:16px 0 calc(18px + env(safe-area-inset-bottom,0));background:#141210;}
+  .camera-shutter-btn{width:66px;height:66px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,0.35);cursor:pointer;padding:0;}
+  .camera-shutter-btn:active{transform:scale(0.92);}
+
   .mark-overlay{position:fixed;inset:0;background:#1e1a15;z-index:85;display:flex;flex-direction:column;overscroll-behavior:none;}
   .mark-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;font-size:13px;font-weight:700;}
   .mark-topbar .link{color:#fff;font-weight:700;}
@@ -276,6 +291,7 @@
   .shape-move-zone{position:absolute;border-radius:50%;touch-action:none;border:1.5px dashed rgba(255,255,255,0.55);cursor:move;}
   .snap-guide-v{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed #ff4fa3;pointer-events:none;z-index:6;}
   .snap-guide-h{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed #ff4fa3;pointer-events:none;z-index:6;}
+  .size-match-badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#ff4fa3;color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:14px;pointer-events:none;z-index:7;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap;}
   .shape-move-mid{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.35);border:1.5px dashed rgba(255,255,255,0.8);touch-action:none;}
   .shape-handle{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--leaf);touch-action:none;}
   .shp-btn{position:absolute;width:30px;height:30px;margin-left:-15px;margin-top:-15px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:none;}
@@ -316,8 +332,9 @@
   .camera-box .icon{font-size:28px;display:block;margin-bottom:6px;}
   .preview-strip{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;}
   .preview-strip .pv{flex:0 0 auto;width:66px;height:66px;border-radius:8px;overflow:hidden;position:relative;background:var(--line);}
-  .preview-strip .pv img{width:100%;height:100%;object-fit:cover;}
+  .preview-strip .pv img{width:100%;height:100%;object-fit:cover;transition:transform .15s ease;}
   .preview-strip .pv .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
+  .preview-strip .pv .rt{position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
 
   .report-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
   .report-head{font-size:14px;font-weight:700;color:var(--soil);}

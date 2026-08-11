@@ -176,6 +176,36 @@ function renderSnapGuides(guideX, guideY){
 }
 function clearSnapGuides(){ removeIfExists('snapGuideV'); removeIfExists('snapGuideH'); }
 
+/* ---- 크기 맞춤 안내 (같은 도구끼리 크기가 같아지면 표시) ---- */
+const SIZE_SNAP_THRESHOLD = 6; // 원 반지름/화살표 길이 px
+const SIZE_SNAP_THRESHOLD_FONT = 2; // 텍스트 폰트 크기 px
+function getMarkShapeSize(sh){
+  if(sh.type==='circle' || sh.type==='arrow') return Math.hypot(sh.x2-sh.x1, sh.y2-sh.y1);
+  if(sh.type==='text') return sh.fontSize;
+  return null;
+}
+function computeSizeSnap(type, currentSize){
+  const threshold = type==='text' ? SIZE_SNAP_THRESHOLD_FONT : SIZE_SNAP_THRESHOLD;
+  const targets = (markState.shapes||[]).filter(s=>s.type===type);
+  let best=null, bestDist=threshold;
+  targets.forEach(s=>{
+    const sz = getMarkShapeSize(s);
+    const dist = Math.abs(sz-currentSize);
+    if(dist<bestDist){ bestDist=dist; best=sz; }
+  });
+  return best;
+}
+function showSizeMatchBadge(){
+  if(document.getElementById('sizeMatchBadge')) return;
+  const inner = document.getElementById('markCanvasInner');
+  if(!inner) return;
+  const b = document.createElement('div');
+  b.id='sizeMatchBadge'; b.className='size-match-badge';
+  b.textContent = '크기 동일';
+  inner.appendChild(b);
+}
+function hideSizeMatchBadge(){ removeIfExists('sizeMatchBadge'); }
+
 /* ---- 원/화살표 배치(이동/크기조절) ---- */
 let pendingShapeData = null;
 function renderPendingShapeHandles(){
@@ -206,7 +236,8 @@ function renderPendingShapeHandles(){
 }
 function attachShapeHandleDrag(){
   const s = pendingShapeData;
-  function makeDraggable(el, onMove, snap){
+  function makeDraggable(el, onMove, opts){
+    opts = opts || {};
     if(!el) return;
     let startX=0, startY=0, orig=null;
     el.addEventListener('touchstart', (e)=>{
@@ -220,31 +251,47 @@ function attachShapeHandleDrag(){
       const t = e.touches[0];
       const dx = t.clientX-startX, dy = t.clientY-startY;
       onMove(dx, dy, orig);
-      if(snap){
+      if(opts.posSnap){
         const c = getMarkShapeCenter(s);
         const snapped = computeSnap(c.x, c.y);
         const adjX = snapped.x-c.x, adjY = snapped.y-c.y;
         if(adjX || adjY){ s.x1+=adjX; s.x2+=adjX; s.y1+=adjY; s.y2+=adjY; }
         renderSnapGuides(snapped.guideX, snapped.guideY);
       }
+      if(opts.sizeSnap){
+        const curSize = getMarkShapeSize(s);
+        const matched = curSize>0 ? computeSizeSnap(s.type, curSize) : null;
+        if(matched!==null){
+          const scale = matched/curSize;
+          if(opts.sizeSnap==='fromP1'){ s.x2 = s.x1+(s.x2-s.x1)*scale; s.y2 = s.y1+(s.y2-s.y1)*scale; }
+          else { s.x1 = s.x2+(s.x1-s.x2)*scale; s.y1 = s.y2+(s.y1-s.y2)*scale; }
+          showSizeMatchBadge();
+        } else {
+          hideSizeMatchBadge();
+        }
+      }
       redrawMarkCanvas();
       renderPendingShapeHandles();
     }, {passive:false});
-    el.addEventListener('touchend', (e)=>{ e.stopPropagation(); if(snap) clearSnapGuides(); }, {passive:true});
+    el.addEventListener('touchend', (e)=>{
+      e.stopPropagation();
+      if(opts.posSnap) clearSnapGuides();
+      if(opts.sizeSnap) hideSizeMatchBadge();
+    }, {passive:true});
   }
   if(s.type==='circle'){
     makeDraggable(document.getElementById('shMove'), (dx,dy,orig)=>{
       s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
-    }, true);
+    }, {posSnap:true});
     makeDraggable(document.getElementById('shResize'), (dx,dy,orig)=>{
       s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
-    });
+    }, {sizeSnap:'fromP1'});
   } else {
     makeDraggable(document.getElementById('shMoveMid'), (dx,dy,orig)=>{
       s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
-    }, true);
-    makeDraggable(document.getElementById('shA'), (dx,dy,orig)=>{ s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; });
-    makeDraggable(document.getElementById('shB'), (dx,dy,orig)=>{ s.x2 = orig.x2+dx; s.y2 = orig.y2+dy; });
+    }, {posSnap:true});
+    makeDraggable(document.getElementById('shA'), (dx,dy,orig)=>{ s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; }, {sizeSnap:'fromP2'});
+    makeDraggable(document.getElementById('shB'), (dx,dy,orig)=>{ s.x2 = orig.x2+dx; s.y2 = orig.y2+dy; }, {sizeSnap:'fromP1'});
   }
 }
 function confirmPendingShape(){
@@ -253,12 +300,14 @@ function confirmPendingShape(){
   pendingShapeData = null;
   removeIfExists('shapeHandles');
   clearSnapGuides();
+  hideSizeMatchBadge();
   redrawMarkCanvas();
 }
 function cancelPendingShape(){
   pendingShapeData = null;
   removeIfExists('shapeHandles');
   clearSnapGuides();
+  hideSizeMatchBadge();
   redrawMarkCanvas();
 }
 /* ---- 텍스트 배치(이동/크기조절) ---- */
@@ -323,11 +372,14 @@ function attachPendingTextGestures(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
       const curDist = Math.hypot(t.clientX-cx, t.clientY-cy);
-      pendingTextData.fontSize = Math.max(12, Math.min(90, startSize * (curDist/startDist)));
+      let newSize = Math.max(12, Math.min(90, startSize * (curDist/startDist)));
+      const matched = computeSizeSnap('text', newSize);
+      if(matched!==null){ newSize = matched; showSizeMatchBadge(); } else { hideSizeMatchBadge(); }
+      pendingTextData.fontSize = newSize;
       el.style.fontSize = pendingTextData.fontSize+'px';
     }
   }, {passive:false});
-  el.addEventListener('touchend', (e)=>{ e.stopPropagation(); mode=null; clearSnapGuides(); }, {passive:true});
+  el.addEventListener('touchend', (e)=>{ e.stopPropagation(); mode=null; clearSnapGuides(); hideSizeMatchBadge(); }, {passive:true});
 }
 function confirmPendingText(){
   if(!pendingTextData || !markState) return;
@@ -342,6 +394,7 @@ function removePendingTextEditor(){
   pendingTextData = null;
   removeIfExists('markTextEditor');
   clearSnapGuides();
+  hideSizeMatchBadge();
 }
 
 function setMarkTool(tool, el){
@@ -428,6 +481,7 @@ function renderLightbox(){
       <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
       <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
       <a class="a" onclick="openMarkingEditor('${p.id}')">마킹</a>
+      <a class="a" onclick="rotateLightboxPhoto()">${icon('rotate',13)} 회전</a>
       <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
     </div>`;
   attachLightboxGestures();
@@ -559,6 +613,48 @@ function lightboxNav(dir){
   renderLightbox();
 }
 function closeLightbox(){ removeIfExists('lightboxEl'); }
+function rotateImageBlob(blob, degrees){
+  return new Promise((resolve, reject)=>{
+    createImageBitmap(blob).then(bitmap=>{
+      const swap = Math.abs(degrees % 180) === 90;
+      const w = bitmap.width, h = bitmap.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = swap ? h : w;
+      canvas.height = swap ? w : h;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width/2, canvas.height/2);
+      ctx.rotate(degrees*Math.PI/180);
+      ctx.drawImage(bitmap, -w/2, -h/2);
+      if(bitmap.close) bitmap.close();
+      canvas.toBlob(async (outBlob)=>{
+        const MAX_THUMB = 380;
+        const tscale = MAX_THUMB/Math.max(canvas.width, canvas.height);
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = Math.round(canvas.width*tscale);
+        thumbCanvas.height = Math.round(canvas.height*tscale);
+        thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+        const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
+        resolve({ blob: outBlob, thumbBlob });
+      }, 'image/jpeg', 0.9);
+    }).catch(reject);
+  });
+}
+async function rotateLightboxPhoto(){
+  const p = allPhotosCache[lightboxIndex];
+  if(!p) return;
+  try{
+    const { blob, thumbBlob } = await rotateImageBlob(p.blob, 90);
+    p.blob = blob; p.thumbBlob = thumbBlob;
+    await idbPut('photos', p);
+    if(photoUrlCache.has(p.id)){ URL.revokeObjectURL(photoUrlCache.get(p.id)); photoUrlCache.delete(p.id); }
+    const thumbKey = p.id+'_thumb';
+    if(photoThumbUrlCache.has(thumbKey)){ URL.revokeObjectURL(photoThumbUrlCache.get(thumbKey)); photoThumbUrlCache.delete(thumbKey); }
+    renderLightbox();
+    if(currentTrialId) renderDetail(currentTrialId);
+  }catch(e){
+    showStorageError(e);
+  }
+}
 async function deleteLightboxPhoto(){
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;

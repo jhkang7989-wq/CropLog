@@ -1,7 +1,9 @@
 /* ================= 업로드 ================= */
 let pendingFiles = [];
+let pendingRotations = [];
 async function renderUpload(trialId){
   pendingFiles = [];
+  pendingRotations = [];
   document.getElementById('previewStrip').innerHTML='';
   document.getElementById('uploadDate').value = todayStr();
   const t = await idbGet('trials', trialId);
@@ -10,36 +12,56 @@ async function renderUpload(trialId){
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
-  files.forEach(f=> pendingFiles.push(f));
+  files.forEach(f=> { pendingFiles.push(f); pendingRotations.push(0); });
   renderPreview();
   e.target.value='';
 }
 function renderPreview(){
   const strip = document.getElementById('previewStrip');
   strip.innerHTML = pendingFiles.map((f,i)=>`
-    <div class="pv"><img src="${URL.createObjectURL(f)}"><div class="rm" onclick="removePending(${i})">${icon('close',11)}</div></div>`).join('');
+    <div class="pv">
+      <img src="${URL.createObjectURL(f)}" style="transform:rotate(${pendingRotations[i]||0}deg);">
+      <div class="rt" onclick="rotatePendingFile(${i})">${icon('rotate',11)}</div>
+      <div class="rm" onclick="removePending(${i})">${icon('close',11)}</div>
+    </div>`).join('');
 }
-function removePending(i){ pendingFiles.splice(i,1); renderPreview(); }
-async function processUploadFile(file){
+function rotatePendingFile(i){
+  pendingRotations[i] = ((pendingRotations[i]||0) + 90) % 360;
+  renderPreview();
+  if(document.getElementById('cameraOverlay')) renderCameraFilmstrip();
+}
+function removePending(i){
+  pendingFiles.splice(i,1);
+  pendingRotations.splice(i,1);
+  renderPreview();
+  if(document.getElementById('cameraOverlay')){ updateCameraShotCount(); renderCameraFilmstrip(); }
+}
+async function processUploadFile(file, rotationDeg){
+  rotationDeg = ((rotationDeg||0) % 360 + 360) % 360;
   try{
     const bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
+    const swap = rotationDeg===90 || rotationDeg===270;
     const MAX_FULL = 2000;
     let fw = bitmap.width, fh = bitmap.height;
     if(Math.max(fw,fh) > MAX_FULL){
       const scale = MAX_FULL/Math.max(fw,fh);
       fw = Math.round(fw*scale); fh = Math.round(fh*scale);
     }
+    const outW = swap ? fh : fw, outH = swap ? fw : fh;
     const fullCanvas = document.createElement('canvas');
-    fullCanvas.width = fw; fullCanvas.height = fh;
-    fullCanvas.getContext('2d').drawImage(bitmap, 0, 0, fw, fh);
+    fullCanvas.width = outW; fullCanvas.height = outH;
+    const fctx = fullCanvas.getContext('2d');
+    fctx.translate(outW/2, outH/2);
+    fctx.rotate(rotationDeg*Math.PI/180);
+    fctx.drawImage(bitmap, -fw/2, -fh/2, fw, fh);
     const fullBlob = await new Promise(res=> fullCanvas.toBlob(res, 'image/jpeg', 0.88));
 
     const MAX_THUMB = 380;
-    const tscale = MAX_THUMB/Math.max(bitmap.width, bitmap.height);
-    const tw = Math.round(bitmap.width*tscale), th = Math.round(bitmap.height*tscale);
+    const tscale = MAX_THUMB/Math.max(outW, outH);
+    const tw = Math.round(outW*tscale), th = Math.round(outH*tscale);
     const thumbCanvas = document.createElement('canvas');
     thumbCanvas.width = tw; thumbCanvas.height = th;
-    thumbCanvas.getContext('2d').drawImage(bitmap, 0, 0, tw, th);
+    thumbCanvas.getContext('2d').drawImage(fullCanvas, 0, 0, tw, th);
     const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
 
     if(bitmap.close) bitmap.close();
@@ -54,7 +76,7 @@ async function savePhotos(){
   const date = document.getElementById('uploadDate').value || todayStr();
   toast('사진을 처리하고 있어요...');
   try{
-    const processed = await Promise.all(pendingFiles.map(f=>processUploadFile(f)));
+    const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
     const records = processed.map(({blob, thumbBlob})=>({
       id: uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt: Date.now()
     }));
