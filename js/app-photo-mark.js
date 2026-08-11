@@ -138,6 +138,44 @@ function attachMarkTouchHandlers(canvas){
     }
   });
 }
+/* ---- 정렬 안내선(파워포인트 스마트가이드 방식) ---- */
+const SNAP_THRESHOLD = 6;
+function getMarkShapeCenter(sh){
+  if(sh.type==='arrow') return { x:(sh.x1+sh.x2)/2, y:(sh.y1+sh.y2)/2 };
+  return { x:sh.x1, y:sh.y1 }; // circle, text
+}
+function computeSnap(centerX, centerY){
+  const targets = (markState.shapes||[]).filter(s=>s.type!=='pen');
+  let bestX=null, bestXDist=SNAP_THRESHOLD, bestY=null, bestYDist=SNAP_THRESHOLD;
+  targets.forEach(s=>{
+    const c = getMarkShapeCenter(s);
+    const dx = Math.abs(c.x-centerX);
+    if(dx<bestXDist){ bestXDist=dx; bestX=c.x; }
+    const dy = Math.abs(c.y-centerY);
+    if(dy<bestYDist){ bestYDist=dy; bestY=c.y; }
+  });
+  return {
+    x: bestX!==null ? bestX : centerX,
+    y: bestY!==null ? bestY : centerY,
+    guideX: bestX, guideY: bestY
+  };
+}
+function renderSnapGuides(guideX, guideY){
+  removeIfExists('snapGuideV'); removeIfExists('snapGuideH');
+  const inner = document.getElementById('markCanvasInner');
+  if(guideX!==null && guideX!==undefined){
+    const v = document.createElement('div');
+    v.id='snapGuideV'; v.className='snap-guide-v'; v.style.left = guideX+'px';
+    inner.appendChild(v);
+  }
+  if(guideY!==null && guideY!==undefined){
+    const h = document.createElement('div');
+    h.id='snapGuideH'; h.className='snap-guide-h'; h.style.top = guideY+'px';
+    inner.appendChild(h);
+  }
+}
+function clearSnapGuides(){ removeIfExists('snapGuideV'); removeIfExists('snapGuideH'); }
+
 /* ---- 원/화살표 배치(이동/크기조절) ---- */
 let pendingShapeData = null;
 function renderPendingShapeHandles(){
@@ -168,7 +206,7 @@ function renderPendingShapeHandles(){
 }
 function attachShapeHandleDrag(){
   const s = pendingShapeData;
-  function makeDraggable(el, onMove){
+  function makeDraggable(el, onMove, snap){
     if(!el) return;
     let startX=0, startY=0, orig=null;
     el.addEventListener('touchstart', (e)=>{
@@ -182,22 +220,29 @@ function attachShapeHandleDrag(){
       const t = e.touches[0];
       const dx = t.clientX-startX, dy = t.clientY-startY;
       onMove(dx, dy, orig);
+      if(snap){
+        const c = getMarkShapeCenter(s);
+        const snapped = computeSnap(c.x, c.y);
+        const adjX = snapped.x-c.x, adjY = snapped.y-c.y;
+        if(adjX || adjY){ s.x1+=adjX; s.x2+=adjX; s.y1+=adjY; s.y2+=adjY; }
+        renderSnapGuides(snapped.guideX, snapped.guideY);
+      }
       redrawMarkCanvas();
       renderPendingShapeHandles();
     }, {passive:false});
-    el.addEventListener('touchend', (e)=>{ e.stopPropagation(); }, {passive:true});
+    el.addEventListener('touchend', (e)=>{ e.stopPropagation(); if(snap) clearSnapGuides(); }, {passive:true});
   }
   if(s.type==='circle'){
     makeDraggable(document.getElementById('shMove'), (dx,dy,orig)=>{
       s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
-    });
+    }, true);
     makeDraggable(document.getElementById('shResize'), (dx,dy,orig)=>{
       s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
     });
   } else {
     makeDraggable(document.getElementById('shMoveMid'), (dx,dy,orig)=>{
       s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; s.x2 = orig.x2+dx; s.y2 = orig.y2+dy;
-    });
+    }, true);
     makeDraggable(document.getElementById('shA'), (dx,dy,orig)=>{ s.x1 = orig.x1+dx; s.y1 = orig.y1+dy; });
     makeDraggable(document.getElementById('shB'), (dx,dy,orig)=>{ s.x2 = orig.x2+dx; s.y2 = orig.y2+dy; });
   }
@@ -207,11 +252,13 @@ function confirmPendingShape(){
   markState.shapes.push(pendingShapeData);
   pendingShapeData = null;
   removeIfExists('shapeHandles');
+  clearSnapGuides();
   redrawMarkCanvas();
 }
 function cancelPendingShape(){
   pendingShapeData = null;
   removeIfExists('shapeHandles');
+  clearSnapGuides();
   redrawMarkCanvas();
 }
 /* ---- 텍스트 배치(이동/크기조절) ---- */
@@ -267,8 +314,10 @@ function attachPendingTextGestures(el){
     const t = e.touches[0];
     if(mode==='move'){
       const dx = t.clientX-startX, dy = t.clientY-startY;
-      pendingTextData.x = startLeft+dx; pendingTextData.y = startTop+dy;
+      const snapped = computeSnap(startLeft+dx, startTop+dy);
+      pendingTextData.x = snapped.x; pendingTextData.y = snapped.y;
       el.style.left = pendingTextData.x+'px'; el.style.top = pendingTextData.y+'px';
+      renderSnapGuides(snapped.guideX, snapped.guideY);
     } else if(mode==='resize'){
       // 핸들을 텍스트 중심에서 멀리 끌면 커지고 가까이 끌면 작아짐 (대각선 방향 무관)
       const rect = el.getBoundingClientRect();
@@ -278,7 +327,7 @@ function attachPendingTextGestures(el){
       el.style.fontSize = pendingTextData.fontSize+'px';
     }
   }, {passive:false});
-  el.addEventListener('touchend', (e)=>{ e.stopPropagation(); mode=null; }, {passive:true});
+  el.addEventListener('touchend', (e)=>{ e.stopPropagation(); mode=null; clearSnapGuides(); }, {passive:true});
 }
 function confirmPendingText(){
   if(!pendingTextData || !markState) return;
@@ -292,6 +341,7 @@ function confirmPendingText(){
 function removePendingTextEditor(){
   pendingTextData = null;
   removeIfExists('markTextEditor');
+  clearSnapGuides();
 }
 
 function setMarkTool(tool, el){

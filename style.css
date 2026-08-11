@@ -10,6 +10,7 @@
     --ink:#2c2620;
     --muted:#8a8275;
     --danger:#b5543f;
+    --sat-blue:#3d6f91;
   }
   *{box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
   img{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto;}
@@ -89,6 +90,8 @@
   .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
   .cal-title{font-size:15px;font-weight:800;color:var(--soil);}
   .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+  .cal-weekdays span:first-child{color:var(--danger);}
+  .cal-weekdays span:last-child{color:var(--sat-blue);}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
   @keyframes calSlideInLeft{ from{opacity:0; transform:translateX(26px);} to{opacity:1; transform:translateX(0);} }
   @keyframes calSlideInRight{ from{opacity:0; transform:translateX(-26px);} to{opacity:1; transform:translateX(0);} }
@@ -99,6 +102,8 @@
   .cal-day.today{border:2px solid var(--ink);}
   .cal-daynum{font-weight:800;text-align:center;margin-bottom:2px;}
   .cal-day.today .cal-daynum{font-weight:900;}
+  .cal-day.sun .cal-daynum{color:var(--danger);}
+  .cal-day.sat .cal-daynum{color:var(--sat-blue);}
   .cal-labels{display:flex;flex-direction:column;gap:1px;}
   .cal-label{font-size:8.5px;line-height:1.25;color:var(--soil);background:var(--cream);border-radius:3px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cal-label.done{color:var(--muted);text-decoration:line-through;background:transparent;}
@@ -268,6 +273,8 @@
   .mte-cancel{left:-16px;background:#8a8275;}
   .mte-resize{position:absolute;right:-17px;bottom:-17px;width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--leaf);}
   .shape-move-zone{position:absolute;border-radius:50%;touch-action:none;border:1.5px dashed rgba(255,255,255,0.55);cursor:move;}
+  .snap-guide-v{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed #ff4fa3;pointer-events:none;z-index:6;}
+  .snap-guide-h{position:absolute;left:0;right:0;height:0;border-top:1.5px dashed #ff4fa3;pointer-events:none;z-index:6;}
   .shape-move-mid{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.35);border:1.5px dashed rgba(255,255,255,0.8);touch-action:none;}
   .shape-handle{position:absolute;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:rgba(255,255,255,0.9);border:2px solid var(--leaf);touch-action:none;}
   .shp-btn{position:absolute;width:30px;height:30px;margin-left:-15px;margin-top:-15px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);touch-action:none;}

@@ -90,12 +90,14 @@ async function renderCalGrid(slideDir){
   for(let d=1; d<=daysInMonth; d++){
     const dateStr = ymd(calYear, calMonth, d);
     const list = byDate[dateStr]||[];
+    const dow = new Date(calYear, calMonth, d).getDay();
+    const dowClass = dow===0 ? 'sun' : (dow===6 ? 'sat' : '');
     let mark = '';
     if(list.length){
       const shown = list.slice(0,3);
       mark = `<div class="cal-labels">${shown.map(s=>`<div class="cal-label ${s.status==='done'?'done':''}">${escapeHtml(s.targetText||'')}</div>`).join('')}${list.length>3?`<div class="cal-more">+${list.length-3}건 더</div>`:''}</div>`;
     }
-    cells += `<div class="cal-day ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')"><div class="cal-daynum">${d}</div>${mark}</div>`;
+    cells += `<div class="cal-day ${dowClass} ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')"><div class="cal-daynum">${d}</div>${mark}</div>`;
   }
   document.getElementById('calGrid').innerHTML = cells;
   const gridEl = document.getElementById('calGrid');
