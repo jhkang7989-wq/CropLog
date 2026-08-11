@@ -264,7 +264,7 @@
 
   .camera-overlay{position:fixed;inset:0;background:#000;z-index:88;display:flex;flex-direction:column;overscroll-behavior:none;}
   .camera-preview-wrap{flex:1;position:relative;overflow:hidden;background:#000;min-height:0;}
-  .camera-preview-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+  .camera-preview-wrap video{width:100%;height:100%;object-fit:contain;display:block;}
   .camera-preview-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;animation:camFlash .25s ease-out;}
   @keyframes camFlash{ from{opacity:0.85;} to{opacity:0;} }
   .camera-hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:rgba(255,255,255,0.75);font-size:12px;pointer-events:none;}

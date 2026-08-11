@@ -5,6 +5,7 @@ async function startContinuousCamera(){
     document.getElementById('cameraInput').click();
     return;
   }
+  if(cameraStream){ cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; } // 혹시 남아있던 이전 스트림 정리
   removeIfExists('cameraOverlay');
   const overlay = document.createElement('div');
   overlay.className = 'camera-overlay'; overlay.id = 'cameraOverlay';
@@ -24,7 +25,10 @@ async function startContinuousCamera(){
   renderCameraFilmstrip();
   try{
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'environment', width:{ideal:1920}, height:{ideal:1920} },
+      // 가로/세로를 둘 다 못박으면(특히 정사각형 비율) 카메라가 센서 일부만 잘라 쓰거나
+      // 다른 렌즈(망원 등)를 고를 수 있어 실제 카메라 앱보다 확대돼 보이는 원인이 됨.
+      // width만 제안하고 height/비율은 카메라가 자기 기본값(광각 풀 화각)을 쓰도록 비워둠.
+      video: { facingMode:'environment', width:{ideal:1920} },
       audio: false
     });
     const video = document.getElementById('cameraVideo');
