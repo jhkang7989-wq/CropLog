@@ -369,7 +369,7 @@
     <main>
       <div class="btn-row" style="margin-bottom:14px;">
         <button class="btn btn-ghost" onclick="document.getElementById('galleryInput').click()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5" fill="currentColor" stroke="none"/><polyline points="21,16 15,10 6,20"/></svg> 사진첩에서 선택</button>
-        <button class="btn btn-ghost" onclick="startContinuousCamera()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg> 촬영하기</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('cameraInput').click()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg> 촬영하기</button>
       </div>
       <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
       <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotoSelect(event)">
@@ -511,7 +511,6 @@
 <script src="js/app-compare-save.js"></script>
 <script src="js/app-photo-mark.js"></script>
 <script src="js/app-export.js"></script>
-<script src="js/app-camera.js"></script>
 <script src="js/app-sync.js"></script>
 </body>
 </html>

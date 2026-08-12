@@ -262,21 +262,6 @@
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}
 
-  .camera-overlay{position:fixed;inset:0;background:#000;z-index:88;display:flex;flex-direction:column;overscroll-behavior:none;}
-  .camera-preview-wrap{flex:1;position:relative;overflow:hidden;background:#000;min-height:0;}
-  .camera-preview-wrap video{width:100%;height:100%;object-fit:contain;display:block;}
-  .camera-preview-wrap.flash::after{content:'';position:absolute;inset:0;background:#fff;animation:camFlash .25s ease-out;}
-  @keyframes camFlash{ from{opacity:0.85;} to{opacity:0;} }
-  .camera-hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:rgba(255,255,255,0.75);font-size:12px;pointer-events:none;}
-  .camera-filmstrip{display:flex;gap:6px;padding:8px 10px;overflow-x:auto;background:#141210;min-height:52px;}
-  .cam-film-thumb{position:relative;flex:0 0 auto;width:52px;height:52px;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.25);}
-  .cam-film-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .15s ease;}
-  .cam-film-thumb .rm{position:absolute;top:1px;right:1px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;display:flex;align-items:center;justify-content:center;}
-  .cam-film-thumb .rt{position:absolute;bottom:1px;left:1px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;display:flex;align-items:center;justify-content:center;}
-  .camera-shutter-row{display:flex;justify-content:center;align-items:center;padding:16px 0 calc(18px + env(safe-area-inset-bottom,0));background:#141210;}
-  .camera-shutter-btn{width:66px;height:66px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,0.35);cursor:pointer;padding:0;}
-  .camera-shutter-btn:active{transform:scale(0.92);}
-
   .mark-overlay{position:fixed;inset:0;background:#1e1a15;z-index:85;display:flex;flex-direction:column;overscroll-behavior:none;}
   .mark-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;font-size:13px;font-weight:700;}
   .mark-topbar .link{color:#fff;font-weight:700;}

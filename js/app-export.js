@@ -28,13 +28,11 @@ function renderPreview(){
 function rotatePendingFile(i){
   pendingRotations[i] = ((pendingRotations[i]||0) + 90) % 360;
   renderPreview();
-  if(document.getElementById('cameraOverlay')) renderCameraFilmstrip();
 }
 function removePending(i){
   pendingFiles.splice(i,1);
   pendingRotations.splice(i,1);
   renderPreview();
-  if(document.getElementById('cameraOverlay')){ updateCameraShotCount(); renderCameraFilmstrip(); }
 }
 async function processUploadFile(file, rotationDeg){
   rotationDeg = ((rotationDeg||0) % 360 + 360) % 360;

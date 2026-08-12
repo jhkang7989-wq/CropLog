@@ -1,4 +1,4 @@
-const CACHE_NAME = 'croplog-cache-v34';
+const CACHE_NAME = 'croplog-cache-v35';
 const APP_SHELL = [
   './',
   './index.html',
