@@ -94,8 +94,10 @@ async function renderCalGrid(slideDir){
     const dowClass = dow===0 ? 'sun' : (dow===6 ? 'sat' : '');
     let mark = '';
     if(list.length){
-      const shown = list.slice(0,3);
-      mark = `<div class="cal-labels">${shown.map(s=>`<div class="cal-label ${s.status==='done'?'done':''}">${escapeHtml(s.targetText||'')}</div>`).join('')}${list.length>3?`<div class="cal-more">+${list.length-3}건 더</div>`:''}</div>`;
+      // 항상 최대 2줄만 차지: 2개 이하면 그대로 2개, 넘으면 1개 + "+N건" 한 줄
+      const shown = list.length<=2 ? list : list.slice(0,1);
+      const moreLine = list.length>2 ? `<div class="cal-more">+${list.length-1}건 더</div>` : '';
+      mark = `<div class="cal-labels">${shown.map(s=>`<div class="cal-label ${s.status==='done'?'done':''}">${escapeHtml(s.targetText||'')}</div>`).join('')}${moreLine}</div>`;
     }
     cells += `<div class="cal-day ${dowClass} ${dateStr===today?'today':''}" onclick="openDayModal('${dateStr}')"><div class="cal-daynum">${d}</div>${mark}</div>`;
   }

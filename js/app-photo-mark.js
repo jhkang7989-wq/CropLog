@@ -14,18 +14,21 @@ async function openMarkingEditor(photoId){
     </div>
     <div class="mark-canvas-wrap" id="markCanvasWrap"><div class="mark-canvas-inner" id="markCanvasInner"><canvas id="markCanvas"></canvas></div></div>
     <div class="mark-toolbar">
-      <div class="mark-tools">
-        <button class="mark-tool active" data-tool="pen" onclick="setMarkTool('pen',this)">${icon('pen',17)}</button>
-        <button class="mark-tool" data-tool="circle" onclick="setMarkTool('circle',this)">${icon('circleTool',17)}</button>
-        <button class="mark-tool" data-tool="arrow" onclick="setMarkTool('arrow',this)">${icon('arrowTool',17)}</button>
-        <button class="mark-tool" data-tool="text" onclick="setMarkTool('text',this)">${icon('textTool',17)}</button>
-        <button class="mark-tool" onclick="undoMarkShape()">${icon('undo',17)}</button>
-      </div>
-      <div class="mark-colors">
-        <div class="mark-color active" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
-        <div class="mark-color" style="background:#e0a72e" onclick="setMarkColor('#e0a72e',this)"></div>
-        <div class="mark-color" style="background:#3fa34d" onclick="setMarkColor('#3fa34d',this)"></div>
-        <div class="mark-color mark-color-more" id="markColorMoreBtn" onclick="openMarkColorPicker()">${icon('plus',13)}</div>
+      <div class="mark-extra-row" id="markExtraRow"></div>
+      <div class="mark-main-row">
+        <div class="mark-tools">
+          <button class="mark-tool active" data-tool="pen" onclick="setMarkTool('pen',this)">${icon('pen',17)}</button>
+          <button class="mark-tool" data-tool="circle" onclick="setMarkTool('circle',this)">${icon('circleTool',17)}</button>
+          <button class="mark-tool" data-tool="arrow" onclick="setMarkTool('arrow',this)">${icon('arrowTool',17)}</button>
+          <button class="mark-tool" data-tool="text" onclick="setMarkTool('text',this)">${icon('textTool',17)}</button>
+          <button class="mark-tool" onclick="undoMarkShape()">${icon('undo',17)}</button>
+        </div>
+        <div class="mark-colors">
+          <div class="mark-color active" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
+          <div class="mark-color" style="background:#e0a72e" onclick="setMarkColor('#e0a72e',this)"></div>
+          <div class="mark-color" style="background:#3fa34d" onclick="setMarkColor('#3fa34d',this)"></div>
+          <div class="mark-color mark-color-more" id="markColorMoreBtn" onclick="openMarkColorPicker()">${icon('plus',13)}</div>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -54,9 +57,10 @@ function initMarkCanvas(img, photoId){
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr,dpr);
 
-  markState = { photoId, img, shapes:[], tool:'pen', color:'#e5484d', canvas, ctx, dispW, dispH, drawing:false, current:null };
+  markState = { photoId, img, shapes:[], tool:'pen', color:'#e5484d', lineWidth:4, textBg:'none', canvas, ctx, dispW, dispH, drawing:false, current:null };
   redrawMarkCanvas();
   attachMarkTouchHandlers(canvas);
+  renderMarkExtraRow();
 }
 function redrawMarkCanvas(){
   const {ctx, img, dispW, dispH, shapes, current} = markState;
@@ -66,7 +70,7 @@ function redrawMarkCanvas(){
 }
 function drawMarkShape(ctx, sh){
   ctx.strokeStyle = sh.color; ctx.fillStyle = sh.color;
-  ctx.lineWidth = 4; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.lineWidth = sh.lineWidth || 4; ctx.lineCap='round'; ctx.lineJoin='round';
   if(sh.type==='pen'){
     ctx.beginPath();
     sh.points.forEach((pt,i)=>{ i===0? ctx.moveTo(pt.x,pt.y) : ctx.lineTo(pt.x,pt.y); });
@@ -80,6 +84,23 @@ function drawMarkShape(ctx, sh){
     ctx.font = `bold ${sh.fontSize||26}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    if(sh.bg && sh.bg!=='none'){
+      const padX = 10, padY = 6, r = 6;
+      const textW = ctx.measureText(sh.text).width;
+      const textH = (sh.fontSize||26) * 1.15;
+      const boxW = textW + padX*2, boxH = textH + padY*2;
+      const bx = sh.x1 - boxW/2, by = sh.y1 - boxH/2;
+      ctx.fillStyle = sh.bg==='white' ? '#ffffff' : '#000000';
+      ctx.beginPath();
+      ctx.moveTo(bx+r, by);
+      ctx.arcTo(bx+boxW, by, bx+boxW, by+boxH, r);
+      ctx.arcTo(bx+boxW, by+boxH, bx, by+boxH, r);
+      ctx.arcTo(bx, by+boxH, bx, by, r);
+      ctx.arcTo(bx, by, bx+boxW, by, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = sh.color;
+    }
     ctx.fillText(sh.text, sh.x1, sh.y1);
   }
 }
@@ -103,14 +124,14 @@ function attachMarkTouchHandlers(canvas){
     e.preventDefault();
     if(!markState || pendingTextData || pendingShapeData) return;
     const pt = getMarkPoint(e, canvas);
-    const {tool, color} = markState;
+    const {tool, color, lineWidth} = markState;
     if(tool==='text'){
       startTextPlacement(pt, color);
       return;
     }
     markState.drawing = true;
-    if(tool==='pen'){ markState.current = {type:'pen', points:[pt], color}; }
-    else { markState.current = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color}; }
+    if(tool==='pen'){ markState.current = {type:'pen', points:[pt], color, lineWidth}; }
+    else { markState.current = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color, lineWidth}; }
   }, {passive:false});
   canvas.addEventListener('touchmove', (e)=>{
     if(!markState || !markState.drawing) return;
@@ -316,7 +337,7 @@ let pendingTextData = null;
 function startTextPlacement(pt, color){
   promptText({title:'텍스트 입력', placeholder:'예: 병해충 의심'}).then(text=>{
     if(!text || !markState) return;
-    pendingTextData = { text, color, x: pt.x, y: pt.y, fontSize: 26 };
+    pendingTextData = { text, color, x: pt.x, y: pt.y, fontSize: 26, bg: markState.textBg };
     renderPendingTextEditor();
   });
 }
@@ -329,8 +350,11 @@ function renderPendingTextEditor(){
   el.style.top = pendingTextData.y + 'px';
   el.style.color = pendingTextData.color;
   el.style.fontSize = pendingTextData.fontSize + 'px';
+  const bgStyle = pendingTextData.bg && pendingTextData.bg!=='none'
+    ? `background:${pendingTextData.bg==='white'?'#fff':'#000'};padding:5px 10px;border-radius:6px;`
+    : '';
   el.innerHTML = `
-    <div class="mte-text">${escapeHtml(pendingTextData.text)}</div>
+    <div class="mte-text" style="${bgStyle}">${escapeHtml(pendingTextData.text)}</div>
     <div class="mte-btn mte-confirm" id="mteConfirm">${icon('check',14)}</div>
     <div class="mte-btn mte-cancel" id="mteCancel">${icon('close',14)}</div>
     <div class="mte-resize" id="mteResize"></div>`;
@@ -386,7 +410,7 @@ function confirmPendingText(){
   if(!pendingTextData || !markState) return;
   markState.shapes.push({
     type:'text', text: pendingTextData.text, color: pendingTextData.color,
-    x1: pendingTextData.x, y1: pendingTextData.y, fontSize: pendingTextData.fontSize
+    x1: pendingTextData.x, y1: pendingTextData.y, fontSize: pendingTextData.fontSize, bg: pendingTextData.bg
   });
   removePendingTextEditor(false);
   redrawMarkCanvas();
@@ -401,6 +425,36 @@ function removePendingTextEditor(){
 function setMarkTool(tool, el){
   markState.tool = tool;
   document.querySelectorAll('.mark-tool[data-tool]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderMarkExtraRow();
+}
+function renderMarkExtraRow(){
+  const row = document.getElementById('markExtraRow');
+  if(!row || !markState) return;
+  if(markState.tool==='text'){
+    row.innerHTML = `
+      <span class="mark-extra-label">배경</span>
+      <div class="mark-textbg-opt ${markState.textBg==='none'?'active':''}" onclick="setMarkTextBg('none',this)">없음</div>
+      <div class="mark-textbg-opt ${markState.textBg==='white'?'active':''}" style="background:#fff;color:#222;" onclick="setMarkTextBg('white',this)">흰색</div>
+      <div class="mark-textbg-opt ${markState.textBg==='black'?'active':''}" style="background:#000;color:#fff;" onclick="setMarkTextBg('black',this)">검정</div>`;
+  } else if(markState.tool==='pen' || markState.tool==='circle' || markState.tool==='arrow'){
+    row.innerHTML = `
+      <span class="mark-extra-label">굵기</span>
+      <div class="mark-thick-dot ${markState.lineWidth===2?'active':''}" onclick="setMarkThickness(2,this)"><span style="width:4px;height:4px;"></span></div>
+      <div class="mark-thick-dot ${markState.lineWidth===4?'active':''}" onclick="setMarkThickness(4,this)"><span style="width:8px;height:8px;"></span></div>
+      <div class="mark-thick-dot ${markState.lineWidth===7?'active':''}" onclick="setMarkThickness(7,this)"><span style="width:13px;height:13px;"></span></div>`;
+  } else {
+    row.innerHTML = '';
+  }
+}
+function setMarkThickness(w, el){
+  markState.lineWidth = w;
+  document.querySelectorAll('.mark-thick-dot').forEach(d=>d.classList.remove('active'));
+  el.classList.add('active');
+}
+function setMarkTextBg(bg, el){
+  markState.textBg = bg;
+  document.querySelectorAll('.mark-textbg-opt').forEach(d=>d.classList.remove('active'));
   el.classList.add('active');
 }
 function setMarkColor(color, el){
