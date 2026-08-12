@@ -136,7 +136,8 @@ async function renderCalUpcoming(){
       <div class="sched-check" onclick="event.stopPropagation(); toggleScheduleDone('${s.id}')">${icon('check',12)}</div>
       <div class="sched-body">
         <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
-        <div class="sched-sub">${s.date}${s.time? ' '+s.time:''}${s.purpose? ' · '+escapeHtml(s.purpose):''}</div>
+        <div class="sched-sub">${s.date}${s.time? ' '+s.time:''}</div>
+        ${s.purpose ? `<div class="sched-memo">${escapeHtml(s.purpose)}</div>` : ''}
       </div>
     </div>`).join('');
 }
@@ -162,7 +163,8 @@ function renderScheduleItemHtml(s){
       <div class="sched-check" onclick="toggleScheduleDone('${s.id}')">${icon('check',12)}</div>
       <div class="sched-body">
         <div class="sched-title">${escapeHtml(s.targetText||'')}</div>
-        <div class="sched-sub">${s.time? s.time+' · ':''}${escapeHtml(s.purpose||'')}</div>
+        ${s.time ? `<div class="sched-sub">${s.time}</div>` : ''}
+        ${s.purpose ? `<div class="sched-memo">${escapeHtml(s.purpose)}</div>` : ''}
         <div style="margin-top:7px;"><a href="${googleCalendarUrl(s)}" target="_blank" rel="noopener" class="cal-add-btn">${icon('calendarPlus',13)} 캘린더에 추가</a></div>
       </div>
       <div class="sched-actions">

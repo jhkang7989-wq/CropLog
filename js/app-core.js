@@ -309,6 +309,12 @@ function bindScrollFloaters(view){
     floatTop.classList.toggle('hidden', m.scrollTop <= 260);
   };
 }
+function floatBackClick(){
+  // history.back()은 브라우저/WebView의 실제 이전 히스토리로 갈 수 있어 예측이 안 됨.
+  // 현재 화면의 헤더 뒤로가기 버튼을 그대로 눌러서, 항상 그 버튼과 동일하게(항상 정해진 이전 화면으로) 동작하게 함.
+  const backBtn = document.querySelector('#app > section:not(.hidden) header .back');
+  if(backBtn) backBtn.click();
+}
 function scrollActiveMainTop(){
   const active = document.querySelector('#app > section:not(.hidden) > main');
   if(active) active.scrollTo({top:0, behavior:'smooth'});

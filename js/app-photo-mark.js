@@ -25,6 +25,7 @@ async function openMarkingEditor(photoId){
         <div class="mark-color active" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
         <div class="mark-color" style="background:#e0a72e" onclick="setMarkColor('#e0a72e',this)"></div>
         <div class="mark-color" style="background:#3fa34d" onclick="setMarkColor('#3fa34d',this)"></div>
+        <div class="mark-color mark-color-more" id="markColorMoreBtn" onclick="openMarkColorPicker()">${icon('plus',13)}</div>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -407,6 +408,30 @@ function setMarkColor(color, el){
   document.querySelectorAll('.mark-color').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
 }
+function openMarkColorPicker(){
+  removeIfExists('markColorPopup');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'mark-color-popup-backdrop'; backdrop.id = 'markColorPopup';
+  backdrop.innerHTML = `
+    <div class="mark-color-popup-sheet">
+      <div class="mark-color-grid">
+        ${COLOR_CATALOG.map(c=>`<div class="mark-color-dot" style="background:${c}" onclick="pickMoreMarkColor('${c}')"></div>`).join('')}
+      </div>
+      <div class="mark-color-custom-row">
+        <input type="color" id="markCustomColorInput" value="${markState.color}">
+        <span>직접 선택</span>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+  document.getElementById('markCustomColorInput').oninput = (e)=> pickMoreMarkColor(e.target.value);
+}
+function pickMoreMarkColor(color){
+  const moreBtn = document.getElementById('markColorMoreBtn');
+  if(moreBtn){ moreBtn.style.background = color; setMarkColor(color, moreBtn); }
+  else { markState.color = color; }
+  removeIfExists('markColorPopup');
+}
 function undoMarkShape(){
   if(!markState) return;
   markState.shapes.pop();
@@ -425,33 +450,37 @@ async function saveMarking(){
     const ok = await showConfirm({title:'마킹 없음', message:'표시한 내용이 없어요. 그래도 저장할까요?', confirmLabel:'저장'});
     if(!ok) return;
   }
-  const comment = await promptText({title:'코멘트 (선택)', placeholder:'예: 잎마름병 의심'});
   const original = await idbGet('photos', markState.photoId);
   const canvas = markState.canvas;
-  canvas.toBlob(async (blob)=>{
-    const newId = uid();
-    // 타임라인 등 목록에 쓸 가벼운 썸네일도 같이 생성
-    const MAX_THUMB = 380;
-    const tscale = MAX_THUMB/Math.max(canvas.width, canvas.height);
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = Math.round(canvas.width*tscale);
-    thumbCanvas.height = Math.round(canvas.height*tscale);
-    thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
-    const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
-    try{
-      await idbPut('photos', {
-        id:newId, trialId: original.trialId, date: original.date, createdAt: Date.now(),
-        blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
-      });
-      toast('마킹한 사진을 저장했어요');
-      removeIfExists('markOverlay');
-      closeLightbox();
-      markState = null;
-      if(currentTrialId) renderDetail(currentTrialId);
-    }catch(e){
-      showStorageError(e);
-    }
-  }, 'image/jpeg', 0.9);
+  // 타임라인 등 목록에 쓸 가벼운 썸네일도 같이 생성
+  const MAX_THUMB = 380;
+  const tscale = MAX_THUMB/Math.max(canvas.width, canvas.height);
+  const thumbCanvas = document.createElement('canvas');
+  thumbCanvas.width = Math.round(canvas.width*tscale);
+  thumbCanvas.height = Math.round(canvas.height*tscale);
+  thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+
+  // 코멘트 입력 팝업에 답하길 기다리는 동안 이미지 인코딩을 동시에 진행 —
+  // 예전엔 팝업 응답을 먼저 기다린 "다음에" 인코딩을 시작해서 두 번 기다리는 구조였음
+  const [comment, blob, thumbBlob] = await Promise.all([
+    promptText({title:'코멘트 (선택)', placeholder:'예: 잎마름병 의심'}),
+    new Promise(res=> canvas.toBlob(res, 'image/jpeg', 0.9)),
+    new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75))
+  ]);
+
+  try{
+    await idbPut('photos', {
+      id: uid(), trialId: original.trialId, date: original.date, createdAt: Date.now(),
+      blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
+    });
+    toast('마킹한 사진을 저장했어요');
+    removeIfExists('markOverlay');
+    closeLightbox();
+    markState = null;
+    if(currentTrialId) renderDetail(currentTrialId);
+  }catch(e){
+    showStorageError(e);
+  }
 }
 
 function openLightbox(photoId){
