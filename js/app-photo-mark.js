@@ -24,9 +24,9 @@ async function openMarkingEditor(photoId){
           <button class="mark-tool" onclick="undoMarkShape()">${icon('undo',17)}</button>
         </div>
         <div class="mark-colors">
-          <div class="mark-color active" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
-          <div class="mark-color" style="background:#e0a72e" onclick="setMarkColor('#e0a72e',this)"></div>
-          <div class="mark-color" style="background:#3fa34d" onclick="setMarkColor('#3fa34d',this)"></div>
+          <div class="mark-color" style="background:#ffffff" onclick="setMarkColor('#ffffff',this)"></div>
+          <div class="mark-color active" style="background:#000000" onclick="setMarkColor('#000000',this)"></div>
+          <div class="mark-color" style="background:#e5484d" onclick="setMarkColor('#e5484d',this)"></div>
           <div class="mark-color mark-color-more" id="markColorMoreBtn" onclick="openMarkColorPicker()">${icon('plus',13)}</div>
         </div>
       </div>
@@ -57,7 +57,7 @@ function initMarkCanvas(img, photoId){
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr,dpr);
 
-  markState = { photoId, img, shapes:[], tool:'pen', color:'#e5484d', lineWidth:4, textBg:'none', canvas, ctx, dispW, dispH, drawing:false, current:null };
+  markState = { photoId, img, shapes:[], tool:'pen', color:'#000000', lineWidth:4, textBg:'none', canvas, ctx, dispW, dispH, drawing:false, current:null };
   redrawMarkCanvas();
   attachMarkTouchHandlers(canvas);
   renderMarkExtraRow();
@@ -456,6 +456,11 @@ function setMarkTextBg(bg, el){
   markState.textBg = bg;
   document.querySelectorAll('.mark-textbg-opt').forEach(d=>d.classList.remove('active'));
   el.classList.add('active');
+  if(pendingTextData){
+    // 텍스트박스를 이미 입력한 뒤에도 배경색을 바로 바꿔서 미리보기에 반영
+    pendingTextData.bg = bg;
+    renderPendingTextEditor();
+  }
 }
 function setMarkColor(color, el){
   markState.color = color;

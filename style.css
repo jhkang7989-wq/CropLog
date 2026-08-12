@@ -298,7 +298,7 @@
   .mark-tool.active{background:var(--leaf);color:#fff;}
   .mark-colors{display:flex;gap:6px;}
   .mark-color{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
-  .mark-color.active{border-color:#fff;}
+  .mark-color.active{border-color:var(--leaf);}
   .mark-color-more{background:rgba(255,255,255,0.12);border:1.5px dashed rgba(255,255,255,0.4);color:#ccc;display:flex;align-items:center;justify-content:center;}
   .mark-color-popup-backdrop{position:fixed;inset:0;z-index:89;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;justify-content:center;}
   .mark-color-popup-sheet{width:100%;max-width:480px;background:#26221c;border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0));}
