@@ -466,6 +466,11 @@ function setMarkColor(color, el){
   markState.color = color;
   document.querySelectorAll('.mark-color').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
+  if(pendingTextData){
+    // 텍스트박스를 이미 입력한 뒤에도 글자색을 바로 바꿔서 미리보기에 반영
+    pendingTextData.color = color;
+    renderPendingTextEditor();
+  }
 }
 function openMarkColorPicker(){
   removeIfExists('markColorPopup');
