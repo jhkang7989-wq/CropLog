@@ -109,6 +109,12 @@ function idbDeleteWhere(store, predicate){
   });
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+async function touchTrialUpdatedAt(trialId){
+  const t = await idbGet('trials', trialId);
+  if(!t) return;
+  t.updatedAt = Date.now();
+  await idbPut('trials', t);
+}
 const photoUrlCache = new Map();
 function getPhotoUrl(p){
   if(!photoUrlCache.has(p.id)){

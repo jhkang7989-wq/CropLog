@@ -76,7 +76,8 @@ async function createTrial(){
   if(!cropId){ toast('품목을 선택해주세요'); return; }
 
   const id = uid();
-  await idbPut('trials', {id, cropId, seg, name, region, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: Date.now()});
+  const now = Date.now();
+  await idbPut('trials', {id, cropId, seg, name, region, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);

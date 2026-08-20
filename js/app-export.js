@@ -79,6 +79,7 @@ async function savePhotos(){
       id: uid(), trialId: currentTrialId, date, blob, thumbBlob, createdAt: Date.now()
     }));
     await idbPutMany('photos', records);
+    await touchTrialUpdatedAt(currentTrialId);
     toast(`사진 ${pendingFiles.length}장 저장됐어요`);
     go('detail', currentTrialId);
   }catch(e){
@@ -328,6 +329,7 @@ function renderReportPicker(){
             <div class="photo-thumb ${selectedReportIds.has(p.id)?'selected':''}" id="rpThumb-${p.id}" onclick="toggleReportPhoto('${p.id}')">
               <img loading="lazy" decoding="async" src="${getPhotoThumbUrl(p)}">
               <div class="chk">${icon('check',12)}</div>
+              <div class="rp-preview-btn" onclick="event.stopPropagation(); previewReportPhoto('${p.id}')">${icon('search',12)}</div>
             </div>`).join('')}
         </div>
       </div>`).join('');
@@ -335,6 +337,19 @@ function renderReportPicker(){
   updateReportSelectionUI();
   if(reportMode==='collage') renderCollagePreview();
 }
+function previewReportPhoto(photoId){
+  const p = reportPhotosCache.find(x=>x.id===photoId);
+  if(!p) return;
+  removeIfExists('reportPreviewOverlay');
+  const overlay = document.createElement('div');
+  overlay.className = 'report-preview-overlay'; overlay.id = 'reportPreviewOverlay';
+  overlay.innerHTML = `
+    <div class="report-preview-top"><span onclick="closeReportPhotoPreview()">${icon('close',20)}</span></div>
+    <div class="report-preview-imgwrap"><img src="${getPhotoUrl(p)}"></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeReportPhotoPreview(); });
+}
+function closeReportPhotoPreview(){ removeIfExists('reportPreviewOverlay'); }
 function updateReportSelectionUI(){
   document.getElementById('reportSelCount').textContent = `${selectedReportIds.size}장 선택`;
   const allSelected = reportPhotosCache.length>0 && selectedReportIds.size===reportPhotosCache.length;

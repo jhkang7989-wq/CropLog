@@ -537,6 +537,7 @@ async function saveMarking(){
       id: uid(), trialId: original.trialId, date: original.date, createdAt: Date.now(),
       blob, thumbBlob, isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
     });
+    await touchTrialUpdatedAt(original.trialId);
     toast('마킹한 사진을 저장했어요');
     removeIfExists('markOverlay');
     closeLightbox();

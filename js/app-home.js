@@ -45,7 +45,7 @@ async function renderHome(){
     });
     recentList.innerHTML = cropIds.map(cid=>{
       const c = cropMap[cid] || {name:'?', color:'#999'};
-      const list = grouped[cid].sort((a,b)=>b.createdAt-a.createdAt);
+      const list = grouped[cid].sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
       const expanded = homeExpandedGroups.has(cid);
       return `
         <div class="home-crop-group">
@@ -63,7 +63,7 @@ async function renderHome(){
                 <div class="sub">${t.seg}</div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;">
-                <span class="when">${timeAgo(t.createdAt)}</span>
+                <span class="when">${timeAgo(t.updatedAt||t.createdAt)}</span>
                 <span class="chev">›</span>
               </div>
             </div>`).join('')}
@@ -100,7 +100,7 @@ async function renderAllList(sortMode){
         <div class="sub">${c.name} · ${t.seg}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <span class="when">${timeAgo(t.createdAt)}</span>
+        <span class="when">${timeAgo(t.updatedAt||t.createdAt)}</span>
         <span class="chev">›</span>
       </div>
     </div>`;
@@ -117,10 +117,10 @@ async function renderAllList(sortMode){
     const cropNames = Object.keys(grouped).sort((a,b)=>a.localeCompare(b,'ko'));
     contentEl.innerHTML = cropNames.map(cname=>`
       <div class="section-title" style="margin-top:14px;">${cname} <span style="font-weight:400;color:var(--muted);font-size:11px;">(${grouped[cname].length})</span></div>
-      ${grouped[cname].sort((a,b)=>b.createdAt-a.createdAt).map(renderItem).join('')}
+      ${grouped[cname].sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt)).map(renderItem).join('')}
     `).join('');
   } else {
-    const sorted = [...trials].sort((a,b)=>b.createdAt-a.createdAt);
+    const sorted = [...trials].sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
     contentEl.innerHTML = sorted.map(renderItem).join('');
   }
 }
