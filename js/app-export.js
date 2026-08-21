@@ -348,6 +348,38 @@ function previewReportPhoto(photoId){
     <div class="report-preview-imgwrap"><img src="${getPhotoUrl(p)}"></div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeReportPhotoPreview(); });
+  attachReportPreviewSwipeDismiss(overlay);
+}
+function attachReportPreviewSwipeDismiss(overlay){
+  const wrap = overlay.querySelector('.report-preview-imgwrap');
+  let startY=0, dy=0, dragging=false;
+  function apply(smooth){
+    overlay.style.transition = smooth ? 'transform .22s ease, opacity .22s ease' : 'none';
+    overlay.style.transform = `translateY(${dy}px)`;
+    overlay.style.opacity = String(Math.max(0.25, 1 - Math.abs(dy)/400));
+  }
+  wrap.addEventListener('touchstart', (e)=>{
+    if(e.touches.length!==1) return;
+    dragging = true;
+    startY = e.touches[0].clientY;
+  }, {passive:true});
+  wrap.addEventListener('touchmove', (e)=>{
+    if(!dragging) return;
+    dy = e.touches[0].clientY - startY;
+    if(dy>0){ e.preventDefault(); apply(false); }
+  }, {passive:false});
+  wrap.addEventListener('touchend', ()=>{
+    if(!dragging) return;
+    dragging = false;
+    if(dy > 110){
+      overlay.style.transition = 'transform .22s ease, opacity .22s ease';
+      overlay.style.transform = `translateY(${window.innerHeight}px)`;
+      overlay.style.opacity = '0';
+      setTimeout(()=> closeReportPhotoPreview(), 220);
+    } else {
+      dy = 0; apply(true);
+    }
+  });
 }
 function closeReportPhotoPreview(){ removeIfExists('reportPreviewOverlay'); }
 function updateReportSelectionUI(){

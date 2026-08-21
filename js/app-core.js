@@ -1,3 +1,9 @@
+/* ================= 앱 버전 =================
+   sw.js의 CACHE_NAME 숫자와 항상 같이 올릴 것 — 설정 화면 표시용 숫자가
+   따로 놀면서 안 바뀌는 문제가 있었음. 배포 시 둘 다 +1. */
+const APP_VERSION = 41;
+document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 로컬 저장 모드`;
+
 /* ================= IndexedDB 레이어 ================= */
 let db;
 const DB_NAME = 'sigyoDB', DB_VER = 5;
